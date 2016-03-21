@@ -1,0 +1,1 @@
+This project is about creating a distributed robust chat system and we plan to implement the project in C++ using the various distributed systems protocol.
