@@ -3,7 +3,7 @@
 
 /* The below set of enums define the type of payloads in this app */
 
-typedef enum MsgType
+typedef enum MessageType
 {
     /* 0 to 10 */
 
@@ -25,7 +25,7 @@ typedef enum MsgType
     CLIENT_INFO,                /* When a new client is added to the chat system */
     CLIENT_LIST                 /* When server sends an updated client list to all clients */
 
-} msgType;
+} messageType;
 
 
 /* Use the below macros as the start index for various strings that have to be
@@ -50,5 +50,19 @@ typedef enum MsgType
 
 /* Defines the index of data to be sent */
 #define DATA 42
+
+/* The following structure could be used to store all the information parsed
+ * from the payload by the receiver */
+
+typedef struct msg_struct
+{
+    messageType msgType;        /* Msg type */
+    int seqNum;                 /* Sequence number of the msg */
+    int msgId;                  /* Message ID of the msg */
+    std::string name;           /* Name of the client to which the msg belongs */
+    std::string ipAddr;         /* IP address of the client */
+    int port                    /* Corresponding port */
+    std::string data;           /* Data present in the payload */
+} msg_struct;
 
 #endif
