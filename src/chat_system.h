@@ -74,4 +74,6 @@ extern int iListeningSocketFd, iSendingSocketFd, iListeningPortNum, iSendingPort
 extern std::string username;
 
 extern bool is_server;
+extern std::queue<*msg_struct> qpsBroadcastq;
+extern std::list<*msg_struct> lpsClients;
 #endif
