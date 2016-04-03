@@ -8,12 +8,13 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <cstring>
+#include "./chat_system.h"
 
-struct sockaddr_in sServerListeningAddr, sServerSendingAddr;
-struct sockaddr_in sClientListeningAddr, sClientSendingAddr;
-int iClientAddrLen = 0;
+struct sockaddr_in sListeningAddr;
+struct sockaddr_in sRecAddr;
+int iRecAddrLen;
 int iListeningSocketFd, iSendingSocketFd;
-int iListeningPortNum = 8216, iSendingPortNum = 8217;
+int iListeningPortNum = 8216;
 std::string username;
 bool is_server;
 
@@ -28,55 +29,46 @@ int main(int argc, char ** argv)
         exit(1);
     }
 
-    printf("\nThis server listens to port number '8216'\n");
+    printf("\nThis user listens to port number '8216'\n");
+
+    iRecAddrLen = sizeof(sRecAddr);
+
+    /* Establishing listener socket */
+
+    memset(&sListeningAddr, 0x0, sizeof(sListeningAddr));
+    sListeningAddr.sin_family = AF_INET;
+    sListeningAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    sListeningAddr.sin_port = htons(iListeningPortNum);
+
+    iListeningSocketFd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (iListeningSocketFd < 0)
+    {
+        fprintf(stderr, "Error while opening listening socket\n");
+        exit(1);
+    }
+
+    if (bind(iListeningSocketFd, (struct sockaddr *) &sListeningAddr, sizeof(sListeningAddr)) < 0)
+    {
+        fprintf(stderr, "Error while binding listening socket\n");
+        exit(1);
+    }
+
+    /* Establishing sender socket */
+    
+    iSendingSocketFd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (iSendingSocketFd < 0)
+    {
+        fprintf(stderr, "Error while opening sender socket\n");
+        exit(1);
+    }
 
     /* If initiating a new chat */
     if(2 == argc)
     {
-        /* Establishing listener socket */
-        
         is_server = true;
-
-        memset(&sServerListeningAddr, 0x0, sizeof(sServerListeningAddr));
-        sServerListeningAddr.sin_family = AF_INET;
-        sServerListeningAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-        sServerListeningAddr.sin_port = htons(iListeningPortNum);
-
-        iListeningSocketFd = socket(AF_INET, SOCK_DGRAM, 0);
-
-        if (iListeningSocketFd < 0)
-        {
-            fprintf(stderr, "Error while opening listening socket\n");
-            exit(1);
-        }
-
-        if (bind(iListeningSocketFd, (struct sockaddr *) &sServerListeningAddr, sizeof(sServerListeningAddr)) < 0)
-        {
-            fprintf(stderr, "Error while binding listening socket\n");
-            exit(1);
-        }
-
-        /* Establishing sender socket */
         
-        memset(&sServerSendingAddr, 0x0, sizeof(sServerSendingAddr));
-        sServerSendingAddr.sin_family = AF_INET;
-        sServerSendingAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-        sServerSendingAddr.sin_port = htons(iSendingPortNum);
-
-        iSendingSocketFd = socket(AF_INET, SOCK_DGRAM, 0);
-
-        if (iSendingSocketFd < 0)
-        {
-            fprintf(stderr, "Error while opening sender socket\n");
-            exit(1);
-        }
-
-        if (bind(iSendingSocketFd, (struct sockaddr *) &sServerSendingAddr, sizeof(sServerSendingAddr)) < 0)
-        {
-            fprintf(stderr, "Error while binding sender socket\n");
-            exit(1);
-        }
-
         /* Set username to what's being passed as an arg */
         username = argv[1];
     }
@@ -84,49 +76,7 @@ int main(int argc, char ** argv)
     /* If connecting to an already present chat system */
     else
     {
-        /* Establishing listener socket */
-        
         is_server = false;
-
-        memset(&sClientListeningAddr, 0x0, sizeof(sClientListeningAddr));
-        sClientListeningAddr.sin_family = AF_INET;
-        sClientListeningAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-        sClientListeningAddr.sin_port = htons(iListeningPortNum);
-
-        iListeningSocketFd = socket(AF_INET, SOCK_DGRAM, 0);
-
-        if (iListeningSocketFd < 0)
-        {
-            fprintf(stderr, "Error while opening listening socket\n");
-            exit(1);
-        }
-
-        if (bind(iListeningSocketFd, (struct sockaddr *) &sClientListeningAddr, sizeof(sClientListeningAddr)) < 0)
-        {
-            fprintf(stderr, "Error while binding listening socket\n");
-            exit(1);
-        }
-
-        /* Establishing sender socket */
-        
-        memset(&sClientSendingAddr, 0x0, sizeof(sClientSendingAddr));
-        sClientSendingAddr.sin_family = AF_INET;
-        sClientSendingAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-        sClientSendingAddr.sin_port = htons(iSendingPortNum);
-
-        iSendingSocketFd = socket(AF_INET, SOCK_DGRAM, 0);
-
-        if (iSendingSocketFd < 0)
-        {
-            fprintf(stderr, "Error while opening sender socket\n");
-            exit(1);
-        }
-
-        if (bind(iSendingSocketFd, (struct sockaddr *) &sClientSendingAddr, sizeof(sClientSendingAddr)) < 0)
-        {
-            fprintf(stderr, "Error while binding sender socket\n");
-            exit(1);
-        }
 
         /* Set username to what's being passed as an arg */
         username = argv[1];

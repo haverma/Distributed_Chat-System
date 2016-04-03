@@ -1,6 +1,13 @@
 #ifndef CHAT_SYSTEM_H
 #define CHAT_SYSTEM_H
 
+#include <mutex>
+#include <string>
+#include <queue>
+#include <map>
+#include <iostream>
+#include <list>
+
 /* The below set of enums define the type of payloads in this app */
 
 typedef enum MessageType
@@ -62,18 +69,28 @@ typedef struct msg_struct
     int msgId;                  /* Message ID of the msg */
     std::string name;           /* Name of the client to which the msg belongs */
     std::string ipAddr;         /* IP address of the client */
-    int port                    /* Corresponding port */
+    int port;                   /* Corresponding port */
+    struct sockaddr_in * addr; /* Contains the addr info of the sender */
     std::string data;           /* Data present in the payload */
 } msg_struct;
 
-extern struct sockaddr_in sServerListeningAddr, sServerSendingAddr;
-extern struct sockaddr_in sClientListeningAddr, sClientSendingAddr;
-extern int iClientAddrLen = 0;
+extern struct sockaddr_in sListeningAddr;
+extern struct sockaddr_in sRecAddr;
+extern int iRecAddrLen;
 extern int iListeningSocketFd, iSendingSocketFd, iListeningPortNum, iSendingPortNum;
 
 extern std::string username;
 
 extern bool is_server;
-extern std::queue<*msg_struct> qpsBroadcastq;
-extern std::list<*msg_struct> lpsClients;
+
+extern std::queue<msg_struct *> qpsBroadcastq;
+extern std::list<msg_struct *> lpsClients;
+
+extern long lSeqNum;
+extern long lMsgId;
+
+extern std::mutex seqNumMutex;
+extern std::mutex msgIdMutex;
+extern std::mutex broadcastMutex;
+
 #endif
