@@ -23,7 +23,8 @@ typedef enum MessageType
 
     SERVER_INFO,                /* When a client sends server info to incoming */
     CLIENT_INFO,                /* When a new client is added to the chat system */
-    CLIENT_LIST                 /* When server sends an updated client list to all clients */
+    CLIENT_LIST,                /* When server sends an updated client list to all clients */
+    RETRIEVE_MSG                /* When the client requests the server for a msg with particular seq num */
 
 } messageType;
 
@@ -33,7 +34,7 @@ typedef enum MessageType
 
 
 /* Defines the max size of the payload that can be sent */
-#define BUFFER_SIZE 512
+#define BUFF_SIZE 512
 
 /* Defines the index of msg type */
 #define MSG_TYPE 0
@@ -65,4 +66,12 @@ typedef struct msg_struct
     std::string data;           /* Data present in the payload */
 } msg_struct;
 
+extern struct sockaddr_in sServerListeningAddr, sServerSendingAddr;
+extern struct sockaddr_in sClientListeningAddr, sClientSendingAddr;
+extern int iClientAddrLen = 0;
+extern int iListeningSocketFd, iSendingSocketFd, iListeningPortNum, iSendingPortNum;
+
+extern std::string username;
+
+extern bool is_server;
 #endif
