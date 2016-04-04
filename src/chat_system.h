@@ -84,14 +84,19 @@ extern std::string username;
 extern bool is_server;
 
 extern std::queue<msg_struct *> qpsBroadcastq;
+
 extern std::list<sockaddr_in *> lpsClients;
 extern std::list<msg_struct *> lpsClientInfo;
 
 extern int iSeqNum;
 extern int iMsgId;
+extern std::map<long, msg_struct *> mlpsBroadcastm;
 
 extern std::mutex seqNumMutex;
 extern std::mutex msgIdMutex;
 extern std::mutex broadcastMutex;
+
 extern std::mutex clientListMutex;
+extern std::mutex broadcastbufferMutex;
+
 #endif
