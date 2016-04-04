@@ -17,6 +17,15 @@ int iListeningSocketFd, iSendingSocketFd;
 int iListeningPortNum = 8216;
 std::string username;
 bool is_server;
+std::queue<msg_struct *> qpsBroadcastq;
+std::list<msg_struct *> lpsClientInfo;
+std::list<sockaddr_in *> lpsClients;
+int iSeqNum;
+int iMsgId;
+std::mutex seqNumMutex;
+std::mutex msgIdMutex;
+std::mutex broadcastMutex;
+std::mutex clientListMutex;
 
 int main(int argc, char ** argv)
 {

@@ -77,20 +77,21 @@ typedef struct msg_struct
 extern struct sockaddr_in sListeningAddr;
 extern struct sockaddr_in sRecAddr;
 extern int iRecAddrLen;
-extern int iListeningSocketFd, iSendingSocketFd, iListeningPortNum, iSendingPortNum;
+extern int iListeningSocketFd, iSendingSocketFd, iListeningPortNum;
 
 extern std::string username;
 
 extern bool is_server;
 
 extern std::queue<msg_struct *> qpsBroadcastq;
-extern std::list<msg_struct *> lpsClients;
+extern std::list<sockaddr_in *> lpsClients;
+extern std::list<msg_struct *> lpsClientInfo;
 
-extern long lSeqNum;
-extern long lMsgId;
+extern int iSeqNum;
+extern int iMsgId;
 
 extern std::mutex seqNumMutex;
 extern std::mutex msgIdMutex;
 extern std::mutex broadcastMutex;
-
+extern std::mutex clientListMutex;
 #endif
