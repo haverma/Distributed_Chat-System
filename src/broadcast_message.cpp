@@ -23,11 +23,11 @@ void broadcast_message(){
 
 	   	    	broadcastbufferMutex.lock();
 	            //mlsBroadcastm.insert ( std::pair<long,msg_struct *>(psMsgStruc->seqNum, psMsgStruc) );
-	            if(mlsBroadcastm.size() == BBMAP_THRESHOLD)
+	            if(broadcastBufferMap.size() == BBMAP_THRESHOLD)
 	            {
-	                clear_broadcast_message(mlsBroadcastm);
+	                clear_broadcast_message(broadcastBufferMap);
 	            }
-	            mlsBroadcastm[psMsgStruc->seqNum] = psMsgStruc;
+	            broadcastBufferMap[psMsgStruc->seqNum] = psMsgStruc;
 	            broadcastbufferMutex.unlock();
 	            string message;
 	            if(psMsgStruc->msgtype == CLIENT_LIST){
