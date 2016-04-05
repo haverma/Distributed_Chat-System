@@ -20,12 +20,19 @@ bool is_server;
 std::queue<msg_struct *> qpsBroadcastq;
 std::list<msg_struct *> lpsClientInfo;
 std::list<sockaddr_in *> lpsClients;
-int iSeqNum;
-int iMsgId;
+std::map<int, msg_struct *> holdbackMap;
+std::map<int, msg_struct *> sentBufferMap;
+std::map<int, msg_struct *> broadcastBufferMap;
+int iSeqNum = 0;
+int iMsgId = 0;
 std::mutex seqNumMutex;
 std::mutex msgIdMutex;
 std::mutex broadcastMutex;
 std::mutex clientListMutex;
+std::mutex broadcastbufferMutex;
+std::mutex sentbufferMutex;
+msg_struct sServerInfo, sMyInfo;
+sockaddr_in sServerAddr;
 
 int main(int argc, char ** argv)
 {
@@ -63,6 +70,12 @@ int main(int argc, char ** argv)
         exit(1);
     }
 
+    /* Storing my info in sMyInfo struct */
+    sMyInfo.name = username;
+    sMyInfo.ipAddr = "INADDR_ANY";
+    sMyInfo.port = iListeningPortNum;
+    sMyInfo.addr = &sListeningAddr;
+
     /* Establishing sender socket */
     
     iSendingSocketFd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -76,6 +89,8 @@ int main(int argc, char ** argv)
     /* If initiating a new chat */
     if(2 == argc)
     {
+        /* TODO:Store server info in sServerAddr and sServerInfo struct */
+
         is_server = true;
         
         /* Set username to what's being passed as an arg */

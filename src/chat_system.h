@@ -7,7 +7,7 @@
 #include <map>
 #include <iostream>
 #include <list>
-#include <time.h>  
+#include <time.h>
 
 /* The below set of enums define the type of payloads in this app */
 
@@ -30,7 +30,7 @@ typedef enum MessageType
     /* 11 to 13 */
 
     SERVER_INFO,                /* When a client sends server info to incoming */
-    CLIENT_INFO,                /* When a new client is added to the chat system */
+    NEW_CLIENT_INFO,            /* When a new client is added to the chat system */
     CLIENT_LIST,                /* When server sends an updated client list to all clients */
     RETRIEVE_MSG                /* When the client requests the server for a msg with particular seq num */
 
@@ -60,6 +60,10 @@ typedef enum MessageType
 /* Defines the index of data to be sent */
 #define DATA 42
 
+/* Defines the threshold number of msgs that can be stored in the broadcast
+ * buffer map */
+#define BBMAP_THRESHOLD 200
+
 /* The following structure could be used to store all the information parsed
  * from the payload by the receiver */
 
@@ -71,14 +75,15 @@ typedef struct msg_struct
     std::string name;           /* Name of the client to which the msg belongs */
     std::string ipAddr;         /* IP address of the client */
     int port;                   /* Corresponding port */
-    struct sockaddr_in * addr; /* Contains the addr info of the sender */
-    std::string data;          /* Data present in the payload */
-    int attempts;              /*No. of attempts taken by the client to send this message to the server*/
-    time_t timestamp;          /*Time when the message was tried to be sent by the client*/
+    struct sockaddr_in * addr;  /* Contains the addr info of the sender */
+    std::string data;           /* Data present in the payload */
+    int attempts;               /* No. of attempts taken by the client to send this message to the server*/
+    time_t timestamp;           /* Time when the message was tried to be sent by the client*/
 
 } msg_struct;
 
 extern struct sockaddr_in sListeningAddr;
+extern msg_struct sMyInfo;
 extern struct sockaddr_in sRecAddr;
 extern int iRecAddrLen;
 extern int iListeningSocketFd, iSendingSocketFd, iListeningPortNum;
@@ -88,22 +93,22 @@ extern std::string username;
 extern bool is_server;
 
 extern std::queue<msg_struct *> qpsBroadcastq;
-
 extern std::list<sockaddr_in *> lpsClients;
 extern std::list<msg_struct *> lpsClientInfo;
-
+extern std::map<int, msg_struct *> holdbackMap;
 extern int iSeqNum;
 extern int iMsgId;
 extern std::map<int, msg_struct *> broadcastBufferMap;
-
 extern std::map<int, msg_struct *> sentBufferMap;
 
 extern std::mutex seqNumMutex;
 extern std::mutex msgIdMutex;
 extern std::mutex broadcastMutex;
-
 extern std::mutex clientListMutex;
 extern std::mutex broadcastbufferMutex;
 extern std::mutex sentbufferMutex;
+
+extern msg_struct sServerInfo;
+extern sockaddr_in sServerAddr;
 
 #endif
