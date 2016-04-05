@@ -7,6 +7,7 @@
 #include <map>
 #include <iostream>
 #include <list>
+#include <time.h>  
 
 /* The below set of enums define the type of payloads in this app */
 
@@ -71,7 +72,10 @@ typedef struct msg_struct
     std::string ipAddr;         /* IP address of the client */
     int port;                   /* Corresponding port */
     struct sockaddr_in * addr; /* Contains the addr info of the sender */
-    std::string data;           /* Data present in the payload */
+    std::string data;          /* Data present in the payload */
+    int attempts;              /*No. of attempts taken by the client to send this message to the server*/
+    time_t timestamp;          /*Time when the message was tried to be sent by the client*/
+
 } msg_struct;
 
 extern struct sockaddr_in sListeningAddr;
@@ -90,7 +94,9 @@ extern std::list<msg_struct *> lpsClientInfo;
 
 extern int iSeqNum;
 extern int iMsgId;
-extern std::map<long, msg_struct *> mlpsBroadcastm;
+extern std::map<int, msg_struct *> broadcastBufferMap;
+
+extern std::map<int, msg_struct *> sentBufferMap;
 
 extern std::mutex seqNumMutex;
 extern std::mutex msgIdMutex;
@@ -98,5 +104,6 @@ extern std::mutex broadcastMutex;
 
 extern std::mutex clientListMutex;
 extern std::mutex broadcastbufferMutex;
+extern std::mutex sentbufferMutex;
 
 #endif
