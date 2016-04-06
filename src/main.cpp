@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <cstring>
 #include "./chat_system.h"
+#include <ifaddrs.h>
 
 struct sockaddr_in sListeningAddr;
 struct sockaddr_in sRecAddr;
@@ -34,10 +35,15 @@ std::mutex sentbufferMutex;
 msg_struct sServerInfo, sMyInfo;
 sockaddr_in sServerAddr;
 
+void get_ip_address(char * ip);
+
 int main(int argc, char ** argv)
 {
     std::string token;
     struct sockaddr_in sConnectingProcess;
+    msg_struct * psMsgStruct;
+    sockaddr_in * psSockAddr;
+    char acTemp[50];
 
     if(argc != 2 && argc != 3)
     {
@@ -70,9 +76,11 @@ int main(int argc, char ** argv)
         exit(1);
     }
 
+    get_ip_address(acTemp);
+
     /* Storing my info in sMyInfo struct */
     sMyInfo.name = username;
-    sMyInfo.ipAddr = "INADDR_ANY";
+    sMyInfo.ipAddr = acTemp;
     sMyInfo.port = iListeningPortNum;
     sMyInfo.addr = &sListeningAddr;
 
@@ -89,8 +97,37 @@ int main(int argc, char ** argv)
     /* If initiating a new chat */
     if(2 == argc)
     {
-        /* TODO:Store server info in sServerAddr and sServerInfo struct and
-         * add it to client list */
+        memset(&sServerAddr, 0x0, sizeof(sServerAddr));
+        sServerAddr.sin_family = AF_INET;
+        if(inet_pton(AF_INET, acTemp, &sServerAddr.sin_addr) <= 0)
+        {
+            fprintf(stderr, "Error while storing the IP address. Please retry\n");
+            exit(1);
+        }
+        sServerAddr.sin_port = htons(8216);
+
+        /* Adding the server info in the clients list */
+        psMsgStruct = (msg_struct * ) malloc(sizeof(msg_struct));
+        psMsgStruct->name = argv[1];
+        psMsgStruct->ipAddr = acTemp;
+        psMsgStruct->port = 8216;
+        clientListMutex.lock();
+        lpsClientInfo.push_back(psMsgStruct);
+        clientListMutex.unlock();
+
+        /* Adding server addr in the clients list */
+        psSockAddr = (sockaddr_in *) malloc(sizeof(sockaddr_in));
+        memset(psSockAddr, 0x0, sizeof(psSockAddr));
+        psSockAddr->sin_family = AF_INET;
+        if(inet_pton(AF_INET, acTemp, &(psSockAddr->sin_addr)) <= 0)
+        {
+            fprintf(stderr, "Error while storing the IP address. Please retry\n");
+            exit(1);
+        }
+        psSockAddr->sin_port = htons(8216);
+        clientListMutex.lock();
+        lpsClients.push_back(psSockAddr);
+        clientListMutex.unlock();
 
         is_server = true;
         
@@ -143,4 +180,35 @@ int main(int argc, char ** argv)
 
     std::thread msg_listener_thread(msg_listener);
     */
+}
+
+void get_ip_address(char * ip)
+{
+    struct ifaddrs * sIfAddr = NULL;
+    struct ifaddrs * sIterator = NULL;
+    void * pvTemp = NULL;
+
+    strcpy(ip, "");
+    getifaddrs(&sIfAddr);
+
+    for(sIterator = sIfAddr; sIterator != NULL; sIterator = sIterator->ifa_next)
+    {
+        if(!sIterator->ifa_addr)
+        {
+            continue;
+        }
+
+        if( (sIterator->ifa_addr->sa_family == AF_INET) &&
+                !(strcmp(sIterator->ifa_name, "em1")))
+        {
+            pvTemp = &((struct sockaddr_in *) sIterator->ifa_addr)->sin_addr;
+            char acAddrBuff[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, pvTemp, acAddrBuff, INET_ADDRSTRLEN);
+            strcpy(ip, acAddrBuff);
+        }
+    }
+    if(sIfAddr != NULL)
+        freeifaddrs(sIfAddr);
+
+    return;
 }

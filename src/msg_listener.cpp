@@ -14,6 +14,8 @@ int process_rec_msg(char * acBuffer);
 void get_msg_from_bbm(int seqNum, char * name, char * data);
 void check_hbm_and_display();
 void display(msg_struct * msg);
+void update_client_list(msg_struct * msg);
+void display_client_list();
 
 bool is_client_already_present(std::string name)
 {
@@ -44,7 +46,7 @@ void msg_listener()
         }
 
         iLenToBeSent = process_rec_msg(acBuffer);
-        
+
         if(iLenToBeSent != 0)
         {
             sendto(iSendingSocketFd, acBuffer, iLenToBeSent, 0,
@@ -205,7 +207,7 @@ int process_rec_msg(char * acBuffer)
                     }
                     memset(psMsg, 0x0, sizeof(msg_struct));
                     psMsg->msgType = messageType::MSG;
-                    seqNumMutex.lock();                    
+                    seqNumMutex.lock();
                     psMsg->seqNum = iSeqNum;
                     iSeqNum++;
                     seqNumMutex.unlock();
@@ -302,6 +304,16 @@ int process_rec_msg(char * acBuffer)
                     iLenToBeSent = BUFF_SIZE;
                 }
                 break;
+            }
+
+        case CLIENT_LIST:
+            {
+                if(!is_server)
+                {
+                    /* TODO: Implement the below two functions */
+                    update_client_list(&msg);
+                }
+                display_client_list();
             }
     }
     return iLenToBeSent;
