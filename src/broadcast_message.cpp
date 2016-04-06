@@ -45,7 +45,7 @@ void broadcast_message(){
 	                sprintf(&buf[MSG_TYPE], "%d", psMsgStruc->msgType);
 	            	sprintf(&buf[DATA], "%s", message.c_str());
 	            }
-	            else if(psMsgStruc->msgType == CLIENT_INFO){
+	            else if(psMsgStruc->msgType == NEW_CLIENT_INFO){
 	            	message = psMsgStruc->data;
 	                sprintf(&buf[MSG_TYPE], "%d", psMsgStruc->msgType);
 	            	sprintf(&buf[DATA], "%s", message.c_str());
