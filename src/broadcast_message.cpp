@@ -14,7 +14,7 @@
 #include <unistd.h>
 
 void broadcast_message();
-bool clear_broadcast_message(std::map<int, msg_struct *> broadcastbuffer);
+bool trim_broadcast_message(std::map<int, msg_struct *> broadcastbuffer);
 std::string collect_clients_info();
 
 void broadcast_message(){
@@ -25,6 +25,7 @@ void broadcast_message(){
 	   {    char buf[BUFF_SIZE];
 	   	    while(!qpsBroadcastq.empty())
 	   	    {	
+	   	    	//picking the first element in the broadcast queue
 	   	    	broadcastMutex.lock();
 	   	    	msg_struct* psMsgStruc = qpsBroadcastq.front();
 	   	    	qpsBroadcastq.pop();
@@ -34,7 +35,7 @@ void broadcast_message(){
 	            //mlsBroadcastm.insert ( std::pair<long,msg_struct *>(psMsgStruc->seqNum, psMsgStruc) );
 	            if(broadcastBufferMap.size() == BBMAP_THRESHOLD)
 	            {
-	                clear_broadcast_message(broadcastBufferMap);
+	                trim_broadcast_message(broadcastBufferMap);
 	            }
 	            broadcastBufferMap[psMsgStruc->seqNum] = psMsgStruc;
 	            broadcastbufferMutex.unlock();
@@ -73,27 +74,32 @@ void broadcast_message(){
     }
 }
 
-bool clear_broadcast_message(std::map<int, msg_struct *> broadcastbuffer)
+bool trim_broadcast_message(std::map<int, msg_struct *> broadcastbuffer)
 {
 	std::map<int,msg_struct *>::iterator it;
-    
-	broadcastbufferMutex.lock();
-	for (it=broadcastbuffer.begin(); it!=broadcastbuffer.end(); ++it){
-		msg_struct* temp = it-> second;
 
-		if(temp != NULL)
+	//Taking the first element from the broadcast buffer
+    it = broadcastbuffer.begin();
+    broadcastbufferMutex.lock();
+    msg_struct* temp = it-> second;
+    
+
+    // Deleting the element and freeing the pointer to struc
+	if(temp != NULL)
+	{
+		if(temp -> addr != NULL)
 		{
-			if(temp -> addr != NULL)
-			{
-				free(temp -> addr);
-				temp -> addr = NULL;
-			}
+			//Freeing the address structure contained 
+			//by the addr structure
+			free(temp -> addr);
+			temp -> addr = NULL;
 		}
-		free(temp);
-		temp = NULL;
 	}
-	broadcastbuffer.clear();
-	broadcastbufferMutex.unlock();
+	free(temp);
+	temp = NULL;
+    broadcastbuffer.erase(it);
+    broadcastbufferMutex,unlock();
+
 	return true;
 
 }
@@ -103,7 +109,7 @@ std::string collect_clients_info()
 	std::string message = "";
 	for (std::list<msg_struct *>::iterator i = lpsClientInfo.begin(); i != lpsClientInfo.end(); ++i)
 	{
-        message = message + (*i)->name + ":" + (*i)->ipAddr + ":" + std::to_string((*i)->port) + ",";
+        message = message + (*i)->name + ":" + (*i)->ipAddr + ":" + std::to_string((*i)->port) + "\n";
 	}
 	return message;
 }
