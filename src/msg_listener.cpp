@@ -232,7 +232,7 @@ int process_rec_msg(char * acBuffer)
                     /* TODO Implement the below function */
                     display(&msg);
                     iExpSeqNum++;
-
+                    iLenToBeSent = 0;
                     /* TODO: Implement the below function */
                     check_hbm_and_display();
                 }
@@ -251,14 +251,29 @@ int process_rec_msg(char * acBuffer)
                     psMsg->name = msg.name;
                     psMsg->data = msg.data;
                     holdbackMap.insert(std::pair<int, msg_struct *>(msg.seqNum, psMsg));
+
+                    if(msg.seqNum >= msg.iExpSeqNum + 2)
+                    {
+                        memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
+                        sprintf(&acBuffer[MSG_TYPE], "%d", (int)messageType::RETRIEVE_MSG);
+                        sprintf(&acBuffer[SEQ_NUM],"%d", iExpSeqNum);
+                        sRecAddr = sServerAddr;
+                        iLenToBeSent = BUFF_SIZE;
+
+                    }
+                    else
+                    {
+                        iLenToBeSent = 0;
+                        
+                    }
                 }
-                else
+                /*else
                 {
-                    /* Control shouldn't come here */
+             
                     fprintf(stderr, "Received unexpected msg\n");
                     break;
-                }
-                iLenToBeSent = 0;
+                }*/
+                
                 break;
             }
 
@@ -298,9 +313,19 @@ int process_rec_msg(char * acBuffer)
                     /* Retrieve msg from the broadcast buffer and send that
                      * msg back to the client */
                     memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
-                    /* TODO: Implement the below function */
+                    sprintf(&acBuffer[SEQ_NUM], "%d",msg.seqNum);
                     get_msg_from_bbm(msg.seqNum, &acBuffer[NAME], &acBuffer[DATA]);
-                    sprintf(&acBuffer[MSG_TYPE], "%d", (int) messageType::MSG);
+                    /*if the sequence number is not found in the buffer map 
+                    *tell the client to increase the sequence number*/
+                    if(&acBuffer[NAME] == NULL && &acBuffer[DATA] == NULL)
+                    {
+                        sprintf(&acBuffer[MSG_TYPE], "%d", (int) messageType::MSG_NOT_FOUND);
+                    }
+                    else
+                    {
+                        //When the message is found in the buffer
+                        sprintf(&acBuffer[MSG_TYPE], "%d", (int) messageType::MSG);
+                    }
                     iLenToBeSent = BUFF_SIZE;
                 }
                 break;
@@ -319,3 +344,61 @@ int process_rec_msg(char * acBuffer)
     return iLenToBeSent;
 }
 
+void get_msg_from_bbm( int seq_number, char * name, char * data)
+{
+    /*Finding the message from the buffer storing it in the
+    *name and data arrays of acbuffer*/
+    std::map<int, msg_struct *>::iterator buffer_map_iterator;
+
+    buffer_map_iterator = broadcastBufferMap.find(seq_number);
+    
+    /*If found the corresponding sequence number as a
+    *key in the broadcast buffer map*/
+    if (it != broadcastBufferMap.end())
+    {
+        /*Storing the message structure in a
+        temp variable the structure*/
+        msg_struct * temp = it -> second;
+        strcpy(name, temp->name);
+        strcpy(data, temp->data);
+    }
+
+}
+
+void display(msg_struct * message)
+{
+    /*If the message type is a simple message*/
+    if(message->msgType == messageType::MSG)
+    {
+        std::cout << message->name + ": " + message->data;
+    }
+    else if(message->msgType == messageType::NEW_CLIENT_INFO) //if the message is a new client notification
+    {
+        std::cout << message->data;
+    }
+}
+
+
+void check_hbm_and_display()
+{
+    std::map<int, msg_struct *>::iterator hb_map_iterator;
+
+    while(true)
+    {
+        hb_map_iterator = holdbackMap.find(iExpSeqNum);
+        
+        /*If found the corresponding sequence number as a
+        *key in the Holdback map*/
+        if (it != holdbackMap.end())
+        {
+            /*display the message*/
+            display(it->second);
+            iExpSeqNum++;
+        }
+        else        //if the next sequence number is not in the holdback map
+        {
+            break;
+        }
+    }
+
+}

@@ -26,6 +26,7 @@ typedef enum MessageType
     REQ_LEADER_ELECTION,        /* When a client requests leader election */
     STOP_LEADER_ELECTION,       /* When a higher client asks another to stop election */
     NEW_LEADER_ELECTED,         /* When a new leader is elected */
+    MSG_NOT_FOUND,              /*When the message is not found in broadcast buffer*/
 
     /* 11 to 13 */
 
