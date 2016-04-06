@@ -36,7 +36,7 @@ typedef enum MessageType
 
 } messageType;
 
-
+#define BBMAP_THRESHOLD 42 //Defines the size of the Broadcast buffer
 /* Use the below macros as the start index for various strings that have to be
  * stored in the buffer */
 
