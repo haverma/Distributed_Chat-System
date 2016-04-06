@@ -9,6 +9,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sstream>
+#include <cstring>
 
 int process_rec_msg(char * acBuffer);
 void get_msg_from_bbm(int seqNum, char * name, char * data);
@@ -252,7 +254,7 @@ int process_rec_msg(char * acBuffer)
                     psMsg->data = msg.data;
                     holdbackMap.insert(std::pair<int, msg_struct *>(msg.seqNum, psMsg));
 
-                    if(msg.seqNum >= msg.iExpSeqNum + 2)
+                    if(msg.seqNum >= iExpSeqNum + 2)
                     {
                         memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
                         sprintf(&acBuffer[MSG_TYPE], "%d", (int)messageType::RETRIEVE_MSG);
@@ -354,13 +356,13 @@ void get_msg_from_bbm( int seq_number, char * name, char * data)
     
     /*If found the corresponding sequence number as a
     *key in the broadcast buffer map*/
-    if (it != broadcastBufferMap.end())
+    if (buffer_map_iterator != broadcastBufferMap.end())
     {
         /*Storing the message structure in a
         temp variable the structure*/
-        msg_struct * temp = it -> second;
-        strcpy(name, temp->name);
-        strcpy(data, temp->data);
+        msg_struct * temp = buffer_map_iterator -> second;
+        strcpy(name, temp->name.c_str());
+        strcpy(data, temp->data.c_str());
     }
 
 }
@@ -389,10 +391,10 @@ void check_hbm_and_display()
         
         /*If found the corresponding sequence number as a
         *key in the Holdback map*/
-        if (it != holdbackMap.end())
+        if (hb_map_iterator != holdbackMap.end())
         {
             /*display the message*/
-            display(it->second);
+            display(hb_map_iterator->second);
             iExpSeqNum++;
         }
         else        //if the next sequence number is not in the holdback map
@@ -401,4 +403,74 @@ void check_hbm_and_display()
         }
     }
 
+}
+
+void update_client_list(msg_struct * psMessageStruct)
+{   
+    /*Clearing the Clients list*/
+    lpsClientInfo.clear();
+
+    std::string message;
+    //populating message from the structure data part
+    message = psMessageStruct->data;
+
+    //Reading the message as a string stream 
+    std::stringstream stringStream(message);
+    std::string line;
+
+    //Reading upto the new line
+    while(std::getline(stringStream, line)) 
+    {
+        //Copying the string into a new char pointer
+        //to change it from string to char pointer
+        //and to make it char * from const char *
+        char * temp = new char [line.length()+1];
+        std::strcpy (temp, line.c_str());
+
+        //char pointer array to hold name, ip , port
+        char *tokens[3];
+        char * token = std::strtok(temp, ":");
+        int i = 0;
+        while(token != NULL)
+        {
+            tokens[i++] = token;
+            token = std::strtok(NULL, ":");
+        }
+        //Creating a new message structure pointer to hold one client
+        msg_struct * psClientInfo = (msg_struct *) malloc(sizeof(msg_struct));
+        if(psClientInfo == NULL)
+        {
+            fprintf(stderr, "Malloc failed. Please retry\n");
+            break;
+        }
+
+        //populating the message struct from the tokens from strtok
+        memset(psClientInfo, 0x0, sizeof(msg_struct));
+        psClientInfo->name = tokens[0];
+        psClientInfo->ipAddr = tokens[1];
+        psClientInfo->port = atoi(tokens[2]);
+        
+        /* Insert it into the client info list */
+        clientListMutex.lock();
+        lpsClientInfo.push_back(psClientInfo);
+        clientListMutex.unlock();
+  
+    }
+
+}
+
+
+void display_client_list()
+{
+    //Getting the server info from the first element of the list
+    msg_struct * psServerInfo = lpsClientInfo.front();
+    std::cout<< psServerInfo->name + " " + psServerInfo->ipAddr + ":" + std::to_string(psServerInfo->port) + " (Leader)" << "\n";
+
+    //Displaying the clients information in a list
+    //starting from the second element in the list
+    for (std::list<msg_struct *>::iterator i = std::next(lpsClientInfo.begin()); i != lpsClientInfo.end(); ++i)
+    {
+        msg_struct * psClientInfo = *i; 
+        std::cout<< psClientInfo->name + " " + psClientInfo->ipAddr + ":" + std::to_string(psClientInfo->port)  << "\n";
+    }
 }
