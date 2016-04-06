@@ -5,9 +5,17 @@
 #include <queue>
 #include <string>
 #include <list>
-#include <chat_system.h>
+#include "chat_system.h"
 #include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
 
+void broadcast_message();
+bool clear_broadcast_message(std::map<int, msg_struct *> broadcastbuffer);
+std::string collect_clients_info();
 
 void broadcast_message(){
 
@@ -15,10 +23,11 @@ void broadcast_message(){
    {
 	   while(1)
 	   {    char buf[BUFF_SIZE];
-	   	    while(!qpsBroadcastq.isempty())
+	   	    while(!qpsBroadcastq.empty())
 	   	    {	
 	   	    	broadcastMutex.lock();
-	   	    	msg_struct* psMsgStruc = qpsBroadcastq.pop();
+	   	    	msg_struct* psMsgStruc = qpsBroadcastq.front();
+	   	    	qpsBroadcastq.pop();
 	   	    	broadcastMutex.unlock();
 
 	   	    	broadcastbufferMutex.lock();
@@ -29,22 +38,32 @@ void broadcast_message(){
 	            }
 	            broadcastBufferMap[psMsgStruc->seqNum] = psMsgStruc;
 	            broadcastbufferMutex.unlock();
-	            string message;
-	            if(psMsgStruc->msgtype == CLIENT_LIST){
+	            std::string message;
+	            memset((char *)&buf, 0, sizeof(buf));
+	            if(psMsgStruc->msgType == CLIENT_LIST){
 	                message = collect_clients_info();
+	                sprintf(&buf[MSG_TYPE], "%d", psMsgStruc->msgType);
+	            	sprintf(&buf[DATA], "%s", message.c_str());
+	            }
+	            else if(psMsgStruc->msgType == CLIENT_INFO){
+	            	message = psMsgStruc->data;
+	                sprintf(&buf[MSG_TYPE], "%d", psMsgStruc->msgType);
+	            	sprintf(&buf[DATA], "%s", message.c_str());
 	            }
 	            else
 	            {
-	            	message = psMsgStruc->data
+	            	message = psMsgStruc->data;
+	            	sprintf(&buf[MSG_TYPE], "%d", psMsgStruc->msgType);
+	            	sprintf(&buf[DATA], "%s", message.c_str());
+		            sprintf(&buf[NAME], "%s", psMsgStruc->name.c_str());
+		            sprintf(&buf[SEQ_NUM], "%d", psMsgStruc->seqNum);
 	            }
-	            memset((char *)&buf, 0, sizeof(buf));
-	            sprintf(&buf[DATA], "%s", message);
-	            sprintf(&buf[NAME], "%s", psMsgStruc->name.c_str());
-	            sprintf(&buf[SEQ_NUM], "%d", psMsgStruc->seqNum);
-		        for (list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i) 
+	            
+	            
+		        for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i) 
 		        {
-		        	sockfd = socket(PF_INET, SOCK_DGRAM, 0);
-		            n = sendto(sockfd, buf, sizeof(buf), 0, (struct sockaddr *)*i, sizeof(*(*i));
+		        	int sockfd = socket(PF_INET, SOCK_DGRAM, 0);
+		            int n = sendto(sockfd, buf, sizeof(buf), 0, (struct sockaddr *)*i, sizeof(*(*i)));
 		            if (n < 0) 
 		                perror("ERROR in sendto"); 
 		        }
@@ -54,7 +73,7 @@ void broadcast_message(){
     }
 }
 
-bool clear_broadcast_message(std::map<long, msg_struct *> broadcastbuffer)
+bool clear_broadcast_message(std::map<int, msg_struct *> broadcastbuffer)
 {
 	std::map<int,msg_struct *>::iterator it;
     
@@ -79,12 +98,12 @@ bool clear_broadcast_message(std::map<long, msg_struct *> broadcastbuffer)
 
 }
 
-string collect_clients_info()
+std::string collect_clients_info()
 {
-	string message = "";
-	for (list<msg_struct *>::iterator i = lpsClientInfo.begin(); i != lpsClientInfo.end(); ++i)
+	std::string message = "";
+	for (std::list<msg_struct *>::iterator i = lpsClientInfo.begin(); i != lpsClientInfo.end(); ++i)
 	{
-        message = message + (*i)->name + ":" + (*i)->ipAddr + ":" + (*i)->std::to_string(port) + ",";
+        message = message + (*i)->name + ":" + (*i)->ipAddr + ":" + std::to_string((*i)->port) + ",";
 	}
-	return string;
+	return message;
 }
