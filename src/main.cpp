@@ -23,7 +23,7 @@ std::list<sockaddr_in *> lpsClients;
 std::map<int, msg_struct *> holdbackMap;
 std::map<int, msg_struct *> sentBufferMap;
 std::map<int, msg_struct *> broadcastBufferMap;
-int iSeqNum = 0;
+int iSeqNum = 0, iExpSeqNum = 0;
 int iMsgId = 0;
 std::mutex seqNumMutex;
 std::mutex msgIdMutex;
@@ -89,7 +89,8 @@ int main(int argc, char ** argv)
     /* If initiating a new chat */
     if(2 == argc)
     {
-        /* TODO:Store server info in sServerAddr and sServerInfo struct */
+        /* TODO:Store server info in sServerAddr and sServerInfo struct and
+         * add it to client list */
 
         is_server = true;
         

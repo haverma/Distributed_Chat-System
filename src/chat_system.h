@@ -95,7 +95,7 @@ extern std::queue<msg_struct *> qpsBroadcastq;
 extern std::list<sockaddr_in *> lpsClients;
 extern std::list<msg_struct *> lpsClientInfo;
 extern std::map<int, msg_struct *> holdbackMap;
-extern int iSeqNum;
+extern int iSeqNum, iExpSeqNum;
 extern int iMsgId;
 extern std::map<int, msg_struct *> broadcastBufferMap;
 extern std::map<int, msg_struct *> sentBufferMap;

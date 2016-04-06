@@ -34,27 +34,13 @@ void msg_listener()
     while(true)
     {
         memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
-        if(is_server)
+        iRecLen = recvfrom(iListeningSocketFd, acBuffer, BUFF_SIZE, 0,
+                (struct sockaddr *) &sRecAddr, (socklen_t*) &iRecAddrLen);
+        
+        if (iRecLen < 0)
         {
-            iRecLen = recvfrom(iListeningSocketFd, acBuffer, BUFF_SIZE, 0,
-                    (struct sockaddr *) &sRecAddr, (socklen_t*) &iRecAddrLen);
-            
-            if (iRecLen < 0)
-            {
-                fprintf(stderr, "Error while receiving from the listening socket\n");
-                exit(1);
-            }
-        }
-        else
-        {
-            iRecLen = recvfrom(iListeningSocketFd, acBuffer, BUFF_SIZE, 0,
-                    (struct sockaddr *) &sRecAddr, (socklen_t*) &iRecAddrLen);
-            
-            if (iRecLen < 0)
-            {
-                fprintf(stderr, "Error while receiving from the listening socket\n");
-                exit(1);
-            }
+            fprintf(stderr, "Error while receiving from the listening socket\n");
+            exit(1);
         }
 
         iLenToBeSent = process_rec_msg(acBuffer);
@@ -200,6 +186,7 @@ int process_rec_msg(char * acBuffer)
                     sprintf(&acBuffer[MSG_TYPE], "%d", (int)messageType::REQ_CONNECTION);
                     strcpy(&acBuffer[NAME], msg.name.c_str());
                     sprintf(&acBuffer[DATA], "%d", msg.port);
+                    sRecAddr = sServerAddr;
                     iLenToBeSent = BUFF_SIZE;
                 }
                 break;
@@ -218,8 +205,10 @@ int process_rec_msg(char * acBuffer)
                     }
                     memset(psMsg, 0x0, sizeof(msg_struct));
                     psMsg->msgType = messageType::MSG;
+                    seqNumMutex.lock();                    
                     psMsg->seqNum = iSeqNum;
                     iSeqNum++;
+                    seqNumMutex.unlock();
                     psMsg->name = msg.name;
                     psMsg->data = msg.data;
 
@@ -234,41 +223,38 @@ int process_rec_msg(char * acBuffer)
 
         case MSG:
             {
-                if(!is_server)
+                if(msg.seqNum == iExpSeqNum)
                 {
-                    if(msg.seqNum == iSeqNum)
-                    {
-                        /* Display msg and then display all other msgs from the hbm
-                         * that should be displayed */
-                        /* TODO Implement the below function */
-                        display(&msg);
-                        iSeqNum++;
+                    /* Display msg and then display all other msgs from the hbm
+                     * that should be displayed */
+                    /* TODO Implement the below function */
+                    display(&msg);
+                    iExpSeqNum++;
 
-                        /* TODO: Implement the below function */
-                        check_hbm_and_display();
-                    }
-                    else if(msg.seqNum > iSeqNum)
+                    /* TODO: Implement the below function */
+                    check_hbm_and_display();
+                }
+                else if(msg.seqNum > iExpSeqNum)
+                {
+                    /* Create an entry in bbm for the msg */
+                    psMsg = (msg_struct *) malloc(sizeof(msg_struct));
+                    if(psMsg == NULL)
                     {
-                        /* Create an entry in bbm for the msg */
-                        psMsg = (msg_struct *) malloc(sizeof(msg_struct));
-                        if(psMsg == NULL)
-                        {
-                            fprintf(stderr, "Malloc failed. Please retry\n");
-                            break;
-                        }
-                        memset(psMsg, 0x0, sizeof(msg_struct));
-                        psMsg->msgType = messageType::MSG;
-                        psMsg->seqNum = msg.seqNum;
-                        psMsg->name = msg.name;
-                        psMsg->data = msg.data;
-                        holdbackMap.insert(std::pair<int, msg_struct *>(msg.seqNum, psMsg));
-                    }
-                    else
-                    {
-                        /* Control shouldn't come here */
-                        fprintf(stderr, "Received unexpected msg\n");
+                        fprintf(stderr, "Malloc failed. Please retry\n");
                         break;
                     }
+                    memset(psMsg, 0x0, sizeof(msg_struct));
+                    psMsg->msgType = messageType::MSG;
+                    psMsg->seqNum = msg.seqNum;
+                    psMsg->name = msg.name;
+                    psMsg->data = msg.data;
+                    holdbackMap.insert(std::pair<int, msg_struct *>(msg.seqNum, psMsg));
+                }
+                else
+                {
+                    /* Control shouldn't come here */
+                    fprintf(stderr, "Received unexpected msg\n");
+                    break;
                 }
                 iLenToBeSent = 0;
                 break;
@@ -280,7 +266,15 @@ int process_rec_msg(char * acBuffer)
                 {
                     /* Remove entry from sent buffer */
                     sentbufferMutex.lock();
-                    sentBufferMap.erase(msg.msgId);
+                    if (sentBufferMap.find(msg.msgId) != sentBufferMap.end())
+                    {
+                        sentBufferMap.erase(msg.msgId);
+                    }
+                    else
+                    {
+                        fprintf(stderr, "Unexpected ack received\n");
+                        break;
+                    }
                     sentbufferMutex.unlock();
                 }
                 iLenToBeSent = 0;
@@ -304,7 +298,7 @@ int process_rec_msg(char * acBuffer)
                     memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
                     /* TODO: Implement the below function */
                     get_msg_from_bbm(msg.seqNum, &acBuffer[NAME], &acBuffer[DATA]);
-                    sprintf(&acBuffer[MSG_TYPE], "%d", (int)messageType::MSG);
+                    sprintf(&acBuffer[MSG_TYPE], "%d", (int) messageType::MSG);
                     iLenToBeSent = BUFF_SIZE;
                 }
                 break;
