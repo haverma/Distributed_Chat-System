@@ -115,7 +115,8 @@ int main(int argc, char ** argv)
         sServerAddr.sin_port = htons(8216);
 
         /* Adding the server info in the clients list */
-        psMsgStruct = (msg_struct * ) malloc(sizeof(msg_struct));
+        //psMsgStruct = (msg_struct * ) malloc(sizeof(msg_struct));
+        psMsgStruct = new msg_struct();
         if(NULL == psMsgStruct)
         {
             fprintf(stderr, "Error while allocating memory. Please retry\n");
@@ -129,7 +130,8 @@ int main(int argc, char ** argv)
         clientListMutex.unlock();
 
         /* Adding server addr in the clients list */
-        psSockAddr = (sockaddr_in *) malloc(sizeof(sockaddr_in));
+        //psSockAddr = (sockaddr_in *) malloc(sizeof(sockaddr_in));
+        psSockAddr = new sockaddr_in();
         memset(psSockAddr, 0x0, sizeof(psSockAddr));
         psSockAddr->sin_family = AF_INET;
         if(inet_pton(AF_INET, acTemp, &(psSockAddr->sin_addr)) <= 0)

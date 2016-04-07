@@ -39,7 +39,8 @@ void user_listener()
         {
             /* Create msg by filling the received msg into a struct and push
              * it to the broadcast queue */
-            psMsg = (msg_struct *) malloc(sizeof(msg_struct));
+            //psMsg = (msg_struct *) malloc(sizeof(msg_struct));
+            psMsg = new msg_struct();
             if(psMsg == NULL)
             {
                 fprintf(stderr, "Malloc failed. Please retry\n");

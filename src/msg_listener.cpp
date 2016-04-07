@@ -86,7 +86,8 @@ int process_rec_msg(char * acBuffer)
                     {
                         /* Create the sockaddr_in struct and msg_struct struct
                          * to be inserted into the two clients list */
-                        psAddr = (sockaddr_in *) malloc(sizeof(sockaddr_in));
+                        //psAddr = (sockaddr_in *) malloc(sizeof(sockaddr_in));
+                        psAddr = new sockaddr_in();
                         if(psAddr == NULL)
                         {
                             fprintf(stderr, "Malloc failed. Please retry\n");
@@ -97,7 +98,8 @@ int process_rec_msg(char * acBuffer)
                         (psAddr->sin_addr).s_addr = sRecAddr.sin_addr.s_addr;
                         psAddr->sin_port = htons(atoi(&acBuffer[DATA]));
 
-                        psClientInfo = (msg_struct *) malloc(sizeof(msg_struct));
+                        //psClientInfo = (msg_struct *) malloc(sizeof(msg_struct));
+                        psClientInfo = new msg_struct();
                         if(psClientInfo == NULL)
                         {
                             fprintf(stderr, "Malloc failed. Please retry\n");
@@ -116,7 +118,8 @@ int process_rec_msg(char * acBuffer)
                         clientListMutex.unlock();
 
                         /* Insert NEW_CLIENT_INFO msg to broadcast queue */
-                        psMsg = (msg_struct *) malloc(sizeof(msg_struct));
+                        //psMsg = (msg_struct *) malloc(sizeof(msg_struct));
+                        psMsg = new msg_struct();
                         if(psMsg == NULL)
                         {
                             fprintf(stderr, "Malloc failed. Please retry\n");
@@ -133,7 +136,8 @@ int process_rec_msg(char * acBuffer)
                         broadcastMutex.unlock();
 
                         /* Insert CLIENT_LIST msg to broadcast queue */
-                        psMsg = (msg_struct *) malloc(sizeof(msg_struct));
+                        //psMsg = (msg_struct *) malloc(sizeof(msg_struct));
+                        psMsg = new msg_struct();
                         if(psMsg == NULL)
                         {
                             fprintf(stderr, "Malloc failed. Please retry\n");
@@ -201,7 +205,8 @@ int process_rec_msg(char * acBuffer)
                 if(is_server)
                 {
                     /* Fill msg struct with data to be sent */
-                    psMsg = (msg_struct *) malloc(sizeof(msg_struct));
+                    //psMsg = (msg_struct *) malloc(sizeof(msg_struct));
+                    psMsg = new msg_struct();
                     if(psMsg == NULL)
                     {
                         fprintf(stderr, "Malloc failed. Please retry\n");
@@ -241,7 +246,8 @@ int process_rec_msg(char * acBuffer)
                 else if(msg.seqNum > iExpSeqNum)
                 {
                     /* Create an entry in bbm for the msg */
-                    psMsg = (msg_struct *) malloc(sizeof(msg_struct));
+                    //psMsg = (msg_struct *) malloc(sizeof(msg_struct));
+                    psMsg = new msg_struct();
                     if(psMsg == NULL)
                     {
                         fprintf(stderr, "Malloc failed. Please retry\n");
@@ -437,7 +443,7 @@ void update_client_list(msg_struct * psMessageStruct)
             token = std::strtok(NULL, ":");
         }
         //Creating a new message structure pointer to hold one client
-        msg_struct * psClientInfo = (msg_struct *) malloc(sizeof(msg_struct));
+        msg_struct * psClientInfo = new msg_struct(); //(msg_struct *) malloc(sizeof(msg_struct));
         if(psClientInfo == NULL)
         {
             fprintf(stderr, "Malloc failed. Please retry\n");
