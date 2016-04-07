@@ -10,6 +10,7 @@
 #include <cstring>
 #include "./chat_system.h"
 #include <ifaddrs.h>
+#include <thread>
 
 struct sockaddr_in sListeningAddr;
 struct sockaddr_in sRecAddr;
@@ -36,6 +37,11 @@ msg_struct sServerInfo, sMyInfo;
 sockaddr_in sServerAddr;
 
 void get_ip_address(char * ip);
+void user_listener();
+void msg_listener();
+void check_ack_sb();
+void broadcast_message();
+
 
 int main(int argc, char ** argv)
 {
@@ -76,7 +82,9 @@ int main(int argc, char ** argv)
         exit(1);
     }
 
-    get_ip_address(acTemp);
+    //get_ip_address(acTemp);
+    //if(NULL == acTemp)
+        strcpy(acTemp, "127.0.0.1");
 
     /* Storing my info in sMyInfo struct */
     sMyInfo.name = username;
@@ -108,6 +116,11 @@ int main(int argc, char ** argv)
 
         /* Adding the server info in the clients list */
         psMsgStruct = (msg_struct * ) malloc(sizeof(msg_struct));
+        if(NULL == psMsgStruct)
+        {
+            fprintf(stderr, "Error while allocating memory. Please retry\n");
+            exit(1);
+        }
         psMsgStruct->name = argv[1];
         psMsgStruct->ipAddr = acTemp;
         psMsgStruct->port = 8216;
@@ -175,11 +188,17 @@ int main(int argc, char ** argv)
         sConnectingProcess.sin_port = htons( (int) strtol(token.c_str(), NULL, 10) );
     }
 
-    /* Working on the below part
     std::thread user_listener_thread(user_listener);
-
     std::thread msg_listener_thread(msg_listener);
-    */
+    std::thread broadcast_message_thread(broadcast_message);
+    std::thread client_chat_ack_thread(check_ack_sb);
+
+    user_listener_thread.join();
+    msg_listener_thread.join();
+    broadcast_message_thread.join();
+    client_chat_ack_thread.join();
+
+    return 0;
 }
 
 void get_ip_address(char * ip)

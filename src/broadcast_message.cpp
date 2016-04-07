@@ -98,7 +98,7 @@ bool trim_broadcast_message(std::map<int, msg_struct *> broadcastbuffer)
 	free(temp);
 	temp = NULL;
     broadcastbuffer.erase(it);
-    broadcastbufferMutex,unlock();
+    broadcastbufferMutex.unlock();
 
 	return true;
 
