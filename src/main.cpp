@@ -45,8 +45,9 @@ void broadcast_message();
 
 int main(int argc, char ** argv)
 {
+    char acBufferLocal[BUFF_SIZE];
     std::string token;
-    struct sockaddr_in sConnectingProcess;
+    struct sockaddr_in sConnectingAddr;
     msg_struct * psMsgStruct;
     sockaddr_in * psSockAddr;
     char acTemp[50];
@@ -57,13 +58,12 @@ int main(int argc, char ** argv)
         exit(1);
     }
 
-    printf("\nThis user listens to port number '8216'\n");
+    printf("\nThis user listens to port number '%d'\n", iListeningPortNum);
 
     iRecAddrLen = sizeof(sRecAddr);
 
     /* Establishing listener socket */
 
-    memset(&sListeningAddr, 0x0, sizeof(sListeningAddr));
     sListeningAddr.sin_family = AF_INET;
     sListeningAddr.sin_addr.s_addr = htonl(INADDR_ANY);
     sListeningAddr.sin_port = htons(iListeningPortNum);
@@ -105,18 +105,24 @@ int main(int argc, char ** argv)
     /* If initiating a new chat */
     if(2 == argc)
     {
-        memset(&sServerAddr, 0x0, sizeof(sServerAddr));
+        is_server = true;
+        /* Start all the threads */
+        std::thread user_listener_thread(user_listener);
+        std::thread msg_listener_thread(msg_listener);
+        std::thread broadcast_message_thread(broadcast_message);
+        std::thread client_chat_ack_thread(check_ack_sb);
+
         sServerAddr.sin_family = AF_INET;
         if(inet_pton(AF_INET, acTemp, &sServerAddr.sin_addr) <= 0)
         {
             fprintf(stderr, "Error while storing the IP address. Please retry\n");
             exit(1);
         }
-        sServerAddr.sin_port = htons(8216);
+        sServerAddr.sin_port = htons(iListeningPortNum);
 
         /* Adding the server info in the clients list */
         //psMsgStruct = (msg_struct * ) malloc(sizeof(msg_struct));
-        psMsgStruct = new msg_struct();
+        psMsgStruct = new msg_struct;//();
         if(NULL == psMsgStruct)
         {
             fprintf(stderr, "Error while allocating memory. Please retry\n");
@@ -124,30 +130,32 @@ int main(int argc, char ** argv)
         }
         psMsgStruct->name = argv[1];
         psMsgStruct->ipAddr = acTemp;
-        psMsgStruct->port = 8216;
+        psMsgStruct->port = iListeningPortNum;
         clientListMutex.lock();
         lpsClientInfo.push_back(psMsgStruct);
         clientListMutex.unlock();
 
         /* Adding server addr in the clients list */
         //psSockAddr = (sockaddr_in *) malloc(sizeof(sockaddr_in));
-        psSockAddr = new sockaddr_in();
-        memset(psSockAddr, 0x0, sizeof(psSockAddr));
+        psSockAddr = new sockaddr_in;//();
         psSockAddr->sin_family = AF_INET;
         if(inet_pton(AF_INET, acTemp, &(psSockAddr->sin_addr)) <= 0)
         {
             fprintf(stderr, "Error while storing the IP address. Please retry\n");
             exit(1);
         }
-        psSockAddr->sin_port = htons(8216);
+        psSockAddr->sin_port = htons(iListeningPortNum);
         clientListMutex.lock();
         lpsClients.push_back(psSockAddr);
         clientListMutex.unlock();
 
-        is_server = true;
-        
         /* Set username to what's being passed as an arg */
         username = argv[1];
+
+        user_listener_thread.join();
+        msg_listener_thread.join();
+        broadcast_message_thread.join();
+        client_chat_ack_thread.join();
     }
 
     /* If connecting to an already present chat system */
@@ -155,11 +163,16 @@ int main(int argc, char ** argv)
     {
         is_server = false;
 
+        /* Start all the threads */
+        std::thread user_listener_thread(user_listener);
+        std::thread msg_listener_thread(msg_listener);
+        std::thread broadcast_message_thread(broadcast_message);
+        std::thread client_chat_ack_thread(check_ack_sb);
+
         /* Set username to what's being passed as an arg */
         username = argv[1];
 
-        memset(&sConnectingProcess, 0x0, sizeof(sConnectingProcess));
-        sConnectingProcess.sin_family = AF_INET;
+        sConnectingAddr.sin_family = AF_INET;
 
         token = strtok(argv[2]," :");
         if(NULL == token.c_str())
@@ -168,7 +181,7 @@ int main(int argc, char ** argv)
             exit(1);
         }
 
-        if(inet_pton(AF_INET, token.c_str(), &sConnectingProcess.sin_addr) <= 0)
+        if(inet_pton(AF_INET, token.c_str(), &sConnectingAddr.sin_addr) <= 0)
         {
             fprintf(stderr, "Error while storing the IP address. Please retry\n");
             exit(1);
@@ -187,18 +200,20 @@ int main(int argc, char ** argv)
             exit(1);
         }
 
-        sConnectingProcess.sin_port = htons( (int) strtol(token.c_str(), NULL, 10) );
+        sConnectingAddr.sin_port = htons( (int) strtol(token.c_str(), NULL, 10) );
+
+        sprintf(&acBufferLocal[MSG_TYPE], "%d", (int) messageType::REQ_CONNECTION);
+        strcpy(&acBufferLocal[NAME], username.c_str());
+        sprintf(&acBufferLocal[DATA], "%d", iListeningPortNum);
+        sendto(iSendingSocketFd, acBufferLocal, BUFF_SIZE, 0,
+            (struct sockaddr *) &sConnectingAddr, sizeof(sockaddr_in));
+
+        user_listener_thread.join();
+        msg_listener_thread.join();
+        broadcast_message_thread.join();
+        client_chat_ack_thread.join();
     }
 
-    std::thread user_listener_thread(user_listener);
-    std::thread msg_listener_thread(msg_listener);
-    std::thread broadcast_message_thread(broadcast_message);
-    std::thread client_chat_ack_thread(check_ack_sb);
-
-    user_listener_thread.join();
-    msg_listener_thread.join();
-    broadcast_message_thread.join();
-    client_chat_ack_thread.join();
 
     return 0;
 }

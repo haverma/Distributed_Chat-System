@@ -62,7 +62,6 @@ void msg_listener()
 int process_rec_msg(char * acBuffer)
 {
     msg_struct msg, * psMsg;
-    memset(&msg, 0x0, sizeof(msg_struct));
     //msg.addr = (sockaddr_in *) malloc(sizeof(sockaddr_in));
     msg.msgType = (messageType) atoi(acBuffer);
     msg.addr = &sRecAddr;
@@ -87,25 +86,23 @@ int process_rec_msg(char * acBuffer)
                         /* Create the sockaddr_in struct and msg_struct struct
                          * to be inserted into the two clients list */
                         //psAddr = (sockaddr_in *) malloc(sizeof(sockaddr_in));
-                        psAddr = new sockaddr_in();
+                        psAddr = new sockaddr_in;//();
                         if(psAddr == NULL)
                         {
                             fprintf(stderr, "Malloc failed. Please retry\n");
                             break;
                         }
-                        memset(psAddr, 0x0, sizeof(sockaddr_in));
                         psAddr->sin_family = AF_INET;
                         (psAddr->sin_addr).s_addr = sRecAddr.sin_addr.s_addr;
                         psAddr->sin_port = htons(atoi(&acBuffer[DATA]));
 
                         //psClientInfo = (msg_struct *) malloc(sizeof(msg_struct));
-                        psClientInfo = new msg_struct();
+                        psClientInfo = new msg_struct;//();
                         if(psClientInfo == NULL)
                         {
                             fprintf(stderr, "Malloc failed. Please retry\n");
                             break;
                         }
-                        memset(psClientInfo, 0x0, sizeof(msg_struct));
                         psClientInfo->name = &acBuffer[NAME];
                         inet_ntop(AF_INET, &(sRecAddr.sin_addr), acTempStr, INET_ADDRSTRLEN);
                         psClientInfo->ipAddr = acTempStr;
@@ -119,13 +116,12 @@ int process_rec_msg(char * acBuffer)
 
                         /* Insert NEW_CLIENT_INFO msg to broadcast queue */
                         //psMsg = (msg_struct *) malloc(sizeof(msg_struct));
-                        psMsg = new msg_struct();
+                        psMsg = new msg_struct;//();
                         if(psMsg == NULL)
                         {
                             fprintf(stderr, "Malloc failed. Please retry\n");
                             break;
                         }
-                        memset(psMsg, 0x0, sizeof(msg_struct));
                         psMsg->msgType = messageType::NEW_CLIENT_INFO;
                         sprintf(acTempStr, "%s joined a new chat on %s:%d, listening\
                                  on %s:%d\n", (psClientInfo->name).c_str(), sServerInfo.ipAddr.c_str(),
@@ -137,13 +133,12 @@ int process_rec_msg(char * acBuffer)
 
                         /* Insert CLIENT_LIST msg to broadcast queue */
                         //psMsg = (msg_struct *) malloc(sizeof(msg_struct));
-                        psMsg = new msg_struct();
+                        psMsg = new msg_struct;//();
                         if(psMsg == NULL)
                         {
                             fprintf(stderr, "Malloc failed. Please retry\n");
                             break;
                         }
-                        memset(psMsg, 0x0, sizeof(msg_struct));
                         psMsg->msgType = messageType::CLIENT_LIST;
                         broadcastMutex.lock();
                         qpsBroadcastq.push(psMsg);
@@ -175,7 +170,6 @@ int process_rec_msg(char * acBuffer)
                     msg.port = atoi(&acBuffer[iTempIndex]);
 
                     /* Store server's information in the global sServerAddr struct */
-                    memset(&sServerAddr, 0x0, sizeof(sServerAddr));
                     sServerAddr.sin_family = AF_INET;
                     if(inet_pton(AF_INET, msg.ipAddr.c_str(), &sServerAddr.sin_addr) <= 0)
                     {
@@ -206,13 +200,12 @@ int process_rec_msg(char * acBuffer)
                 {
                     /* Fill msg struct with data to be sent */
                     //psMsg = (msg_struct *) malloc(sizeof(msg_struct));
-                    psMsg = new msg_struct();
+                    psMsg = new msg_struct;//();
                     if(psMsg == NULL)
                     {
                         fprintf(stderr, "Malloc failed. Please retry\n");
                         break;
                     }
-                    memset(psMsg, 0x0, sizeof(msg_struct));
                     psMsg->msgType = messageType::MSG;
                     seqNumMutex.lock();
                     psMsg->seqNum = iSeqNum;
@@ -247,13 +240,12 @@ int process_rec_msg(char * acBuffer)
                 {
                     /* Create an entry in bbm for the msg */
                     //psMsg = (msg_struct *) malloc(sizeof(msg_struct));
-                    psMsg = new msg_struct();
+                    psMsg = new msg_struct;//();
                     if(psMsg == NULL)
                     {
                         fprintf(stderr, "Malloc failed. Please retry\n");
                         break;
                     }
-                    memset(psMsg, 0x0, sizeof(msg_struct));
                     psMsg->msgType = messageType::MSG;
                     psMsg->seqNum = msg.seqNum;
                     psMsg->name = msg.name;
@@ -443,7 +435,7 @@ void update_client_list(msg_struct * psMessageStruct)
             token = std::strtok(NULL, ":");
         }
         //Creating a new message structure pointer to hold one client
-        msg_struct * psClientInfo = new msg_struct(); //(msg_struct *) malloc(sizeof(msg_struct));
+        msg_struct * psClientInfo = new msg_struct;//(); //(msg_struct *) malloc(sizeof(msg_struct));
         if(psClientInfo == NULL)
         {
             fprintf(stderr, "Malloc failed. Please retry\n");
@@ -451,7 +443,6 @@ void update_client_list(msg_struct * psMessageStruct)
         }
 
         //populating the message struct from the tokens from strtok
-        memset(psClientInfo, 0x0, sizeof(msg_struct));
         psClientInfo->name = tokens[0];
         psClientInfo->ipAddr = tokens[1];
         psClientInfo->port = atoi(tokens[2]);
