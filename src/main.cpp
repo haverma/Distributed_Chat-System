@@ -16,7 +16,7 @@ struct sockaddr_in sListeningAddr;
 struct sockaddr_in sRecAddr;
 int iRecAddrLen;
 int iListeningSocketFd, iSendingSocketFd;
-int iListeningPortNum = 8216;
+int iListeningPortNum = 8217;
 std::string username;
 bool is_server;
 std::queue<msg_struct *> qpsBroadcastq;
@@ -148,6 +148,11 @@ int main(int argc, char ** argv)
         clientListMutex.lock();
         lpsClients.push_back(psSockAddr);
         clientListMutex.unlock();
+
+        /* Adding server info into sServerInfo struct */
+        sServerInfo.name = argv[1];
+        sServerInfo.ipAddr = acTemp;
+        sServerInfo.port = iListeningPortNum;
 
         /* Set username to what's being passed as an arg */
         username = argv[1];

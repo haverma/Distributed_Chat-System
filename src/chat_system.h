@@ -26,10 +26,10 @@ typedef enum MessageType
     REQ_LEADER_ELECTION,        /* When a client requests leader election */
     STOP_LEADER_ELECTION,       /* When a higher client asks another to stop election */
     NEW_LEADER_ELECTED,         /* When a new leader is elected */
-    MSG_NOT_FOUND,              /*When the message is not found in broadcast buffer*/
 
     /* 11 to 13 */
 
+    MSG_NOT_FOUND,              /*When the message is not found in broadcast buffer*/
     SERVER_INFO,                /* When a client sends server info to incoming */
     NEW_CLIENT_INFO,            /* When a new client is added to the chat system */
     CLIENT_LIST,                /* When server sends an updated client list to all clients */

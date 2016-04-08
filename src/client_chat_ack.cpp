@@ -30,12 +30,12 @@ void check_ack_sb()
 		    {
 				msg_struct* temp = it-> second;
                 diff = time(NULL) - temp->timestamp;
-				if(diff>2 && temp->attempts >=2)
+				if(diff>4 && temp->attempts >=2)
 				{
-                    //To do
+                    //TODO
                     printf("Initiate Leader election");
 				}
-				else
+				else if(diff > 4 && temp->attempts < 2)
 				{
 					std::string message = temp->data;
 	            	sprintf(&buf[MSG_TYPE], "%d", temp->msgType);

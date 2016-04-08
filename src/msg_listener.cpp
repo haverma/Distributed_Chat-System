@@ -54,8 +54,6 @@ void msg_listener()
             sendto(iSendingSocketFd, acBuffer, iLenToBeSent, 0,
                     (struct sockaddr *) &sRecAddr, iRecAddrLen);
         }
-
-        fflush(stdin);
     }
 }
 
@@ -123,9 +121,9 @@ int process_rec_msg(char * acBuffer)
                             break;
                         }
                         psMsg->msgType = messageType::NEW_CLIENT_INFO;
-                        sprintf(acTempStr, "%s joined a new chat on %s:%d, listening\
-                                 on %s:%d\n", (psClientInfo->name).c_str(), sServerInfo.ipAddr.c_str(),
-                                 sServerInfo.port, psClientInfo->ipAddr.c_str(), psClientInfo->port);
+                        sprintf(acTempStr, "%s joined a new chat on %s:%d, listening on %s:%d\n",
+                                (psClientInfo->name).c_str(), sServerInfo.ipAddr.c_str(),
+                                sServerInfo.port, psClientInfo->ipAddr.c_str(), psClientInfo->port);
                         psMsg->data = acTempStr;
                         broadcastMutex.lock();
                         qpsBroadcastq.push(psMsg);

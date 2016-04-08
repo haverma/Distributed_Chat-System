@@ -9,6 +9,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <time.h>
 
 void user_listener()
 {
@@ -49,11 +50,10 @@ void user_listener()
             psMsg->msgType = messageType::MSG;
             seqNumMutex.lock();
             psMsg->seqNum = iSeqNum;
+            iSeqNum++;
             seqNumMutex.unlock();
-            iMsgId++;
             psMsg->name = username;
             psMsg->data = &acBuffer[DATA];
-
             broadcastMutex.lock();
             qpsBroadcastq.push(psMsg);
             broadcastMutex.unlock();
@@ -65,6 +65,15 @@ void user_listener()
             strcpy(&acBuffer[NAME], username.c_str());
             sendto(iSocketFd, acBuffer, BUFF_SIZE, 0,
                     (struct sockaddr *) &sServerAddr, sizeof(sockaddr_in));
+            psMsg = new msg_struct;
+            psMsg->msgType = messageType::CHAT;
+            psMsg->name = username;
+            psMsg->data = &acBuffer[DATA];
+            psMsg->msgId = iMsgId;
+            psMsg->timestamp = time(NULL);
+            psMsg->attempts = 1;
+            sentBufferMap[iMsgId] = psMsg;
+            iMsgId++;
         }
 
     }
