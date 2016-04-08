@@ -35,6 +35,8 @@ void user_listener()
         fgets(&acBuffer[DATA], BUFF_SIZE - NAME - 30, stdin);
         iTemp = strlen(&acBuffer[DATA]);
         acBuffer[DATA + iTemp - 1] = '\0';
+        if(!strcmp(&acBuffer[DATA], ""))
+            continue;
 
         if(is_server)
         {
@@ -65,6 +67,8 @@ void user_listener()
             strcpy(&acBuffer[NAME], username.c_str());
             sendto(iSocketFd, acBuffer, BUFF_SIZE, 0,
                     (struct sockaddr *) &sServerAddr, sizeof(sockaddr_in));
+
+            /* Add the message to sent buffer */
             psMsg = new msg_struct;
             psMsg->msgType = messageType::CHAT;
             psMsg->name = username;
@@ -72,7 +76,9 @@ void user_listener()
             psMsg->msgId = iMsgId;
             psMsg->timestamp = time(NULL);
             psMsg->attempts = 1;
+            sentbufferMutex.lock();
             sentBufferMap[iMsgId] = psMsg;
+            sentbufferMutex.unlock();
             iMsgId++;
         }
 

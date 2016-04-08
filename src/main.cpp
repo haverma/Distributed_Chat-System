@@ -16,7 +16,7 @@ struct sockaddr_in sListeningAddr;
 struct sockaddr_in sRecAddr;
 int iRecAddrLen;
 int iListeningSocketFd, iSendingSocketFd;
-int iListeningPortNum = 8217;
+int iListeningPortNum = 8216;
 std::string username;
 bool is_server;
 std::queue<msg_struct *> qpsBroadcastq;
@@ -110,7 +110,7 @@ int main(int argc, char ** argv)
         std::thread user_listener_thread(user_listener);
         std::thread msg_listener_thread(msg_listener);
         std::thread broadcast_message_thread(broadcast_message);
-        std::thread client_chat_ack_thread(check_ack_sb);
+        //std::thread client_chat_ack_thread(check_ack_sb);
 
         sServerAddr.sin_family = AF_INET;
         if(inet_pton(AF_INET, acTemp, &sServerAddr.sin_addr) <= 0)
@@ -160,7 +160,7 @@ int main(int argc, char ** argv)
         user_listener_thread.join();
         msg_listener_thread.join();
         broadcast_message_thread.join();
-        client_chat_ack_thread.join();
+        //client_chat_ack_thread.join();
     }
 
     /* If connecting to an already present chat system */
@@ -172,7 +172,7 @@ int main(int argc, char ** argv)
         std::thread user_listener_thread(user_listener);
         std::thread msg_listener_thread(msg_listener);
         std::thread broadcast_message_thread(broadcast_message);
-        std::thread client_chat_ack_thread(check_ack_sb);
+        //std::thread client_chat_ack_thread(check_ack_sb);
 
         /* Set username to what's being passed as an arg */
         username = argv[1];
@@ -192,6 +192,8 @@ int main(int argc, char ** argv)
             exit(1);
         }
 
+        sServerInfo.ipAddr = token;
+
         token = strtok(NULL, " :");
         if(NULL == token.c_str())
         {
@@ -207,16 +209,23 @@ int main(int argc, char ** argv)
 
         sConnectingAddr.sin_port = htons( (int) strtol(token.c_str(), NULL, 10) );
 
+        sServerInfo.port = atoi(token.c_str());
+
         sprintf(&acBufferLocal[MSG_TYPE], "%d", (int) messageType::REQ_CONNECTION);
         strcpy(&acBufferLocal[NAME], username.c_str());
         sprintf(&acBufferLocal[DATA], "%d", iListeningPortNum);
         sendto(iSendingSocketFd, acBufferLocal, BUFF_SIZE, 0,
             (struct sockaddr *) &sConnectingAddr, sizeof(sockaddr_in));
 
+        /* Copying connecting addr info to server addr assuming it is
+         * connecting to server. If it is not server, we get to know that when
+         * we receive SERVER_INFO */
+        sServerAddr = sConnectingAddr; 
+
         user_listener_thread.join();
         msg_listener_thread.join();
         broadcast_message_thread.join();
-        client_chat_ack_thread.join();
+        //client_chat_ack_thread.join();
     }
 
 

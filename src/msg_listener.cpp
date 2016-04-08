@@ -368,11 +368,11 @@ void display(msg_struct * message)
     /*If the message type is a simple message*/
     if(message->msgType == messageType::MSG)
     {
-        std::cout << message->name + ": " + message->data;
+        std::cout << message->name + ": " + message->data << "\n";
     }
     else if(message->msgType == messageType::NEW_CLIENT_INFO) //if the message is a new client notification
     {
-        std::cout << message->data;
+        std::cout << message->data << "\n";
     }
 }
 
