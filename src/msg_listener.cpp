@@ -18,6 +18,7 @@ void check_hbm_and_display();
 void display(msg_struct * msg);
 void update_client_list(msg_struct * msg);
 void display_client_list();
+void check_ack_sb();
 
 bool is_client_already_present(std::string name)
 {
@@ -285,7 +286,7 @@ int process_rec_msg(char * acBuffer)
                 if(!is_server)
                 {
                     /* Remove entry from sent buffer */
-                    sentbufferMutex.lock();
+                    //sentbufferMutex.lock();
                     if (sentBufferMap.find(msg.msgId) != sentBufferMap.end())
                     {
                         sentBufferMap.erase(msg.msgId);
@@ -295,7 +296,10 @@ int process_rec_msg(char * acBuffer)
                         fprintf(stderr, "Unexpected ack received\n");
                         break;
                     }
-                    sentbufferMutex.unlock();
+                    if(sentBufferMap.size() > 0){
+                        check_ack_sb();
+                    }
+                    //sentbufferMutex.unlock();
                 }
                 iLenToBeSent = 0;
                 break;
