@@ -34,6 +34,7 @@ void check_ack_sb()
 				{
                     //TODO
                     printf("Initiate Leader election");
+                    break;
 				}
 				else if(diff > 4 && temp->attempts < 2)
 				{
@@ -52,7 +53,7 @@ void check_ack_sb()
 		            sentbufferMutex.unlock();
 				}
 			}
-			
+            sleep(2);
         }
     }
 }
