@@ -268,10 +268,10 @@ int process_rec_msg(char * acBuffer)
                 }
 
                 // XXX TESTING LEADER ELECTION XXX
-                if(strcmp(msg.name.c_str(), "election") == 0)
-                {
-                    initiate_leader_election();
-                }
+                //if(strcmp(msg.name.c_str(), "election") == 0)
+                //{
+                //    initiate_leader_election();
+                //}
                 /*else
                 {
              
@@ -350,13 +350,13 @@ int process_rec_msg(char * acBuffer)
             {
                 if(!is_server)
                 {
-                    /* Parse server's IP and port from the DATA part of buffer
-                     * and store it in the temp msg struct */
+                    // Parse server's IP and port from the DATA part of buffer
+                    // and store it in the temp msg struct
                     msg.ipAddr = &acBuffer[DATA];
                     iTempIndex = strlen(&acBuffer[DATA]) + DATA + 1;
                     msg.port = atoi(&acBuffer[iTempIndex]);
 
-                    /* Store server's information in the global sServerAddr struct */
+                    // Store server's information in the global sServerAddr struct 
                     sServerAddr.sin_family = AF_INET;
                     if(inet_pton(AF_INET, msg.ipAddr.c_str(), &sServerAddr.sin_addr) <= 0)
                     {
@@ -365,12 +365,12 @@ int process_rec_msg(char * acBuffer)
                     }
                     sServerAddr.sin_port = htons(msg.port);
 
-                    /* Store server's information in the global sServerInfo struct */
+                    // Store server's information in the global sServerInfo struct
                     sServerInfo.name = msg.name;
                     sServerInfo.ipAddr = msg.ipAddr;
                     sServerInfo.port = msg.port;
 
-                    /* Send REQ_CONNECTION to server now */
+                    / Send REQ_CONNECTION to server now
                     memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
                     sprintf(&acBuffer[MSG_TYPE], "%d", (int)messageType::REQ_CONNECTION);
                     strcpy(&acBuffer[NAME], msg.name.c_str());
