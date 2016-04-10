@@ -95,11 +95,13 @@ extern bool is_server;
 extern std::queue<msg_struct *> qpsBroadcastq;
 extern std::list<sockaddr_in *> lpsClients;
 extern std::list<msg_struct *> lpsClientInfo;
+extern std::list<int> liCurrentclientport;
 extern std::map<int, msg_struct *> holdbackMap;
 extern int iSeqNum, iExpSeqNum;
 extern int iMsgId;
 extern std::map<int, msg_struct *> broadcastBufferMap;
 extern std::map<int, msg_struct *> sentBufferMap;
+extern std::map<int, msg_struct *> broadcastBufferMap;
 
 extern std::mutex seqNumMutex;
 extern std::mutex msgIdMutex;
