@@ -1,3 +1,7 @@
+#ifndef __LEADER_ELECTION__
+#define __LEADER_ELECTION__
+
+
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,14 +16,24 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <ctime>
+
+static bool ELECTION_IN_PROGRESS = true;
 
 void initiate_leader_election();
+void interrupt_leader_election();
 
-void initiate_leader_election(){
-
+void initiate_leader_election()
+{
+   printf("leader election in progress...\n");
    if(!is_server)
    {
-	   while(1)
+       // start timer
+       std::clock_t start;
+       double current = std::clock();
+       double interval = 10; //10 seconds
+
+	   while(true && ELECTION_IN_PROGRESS == true)
 	   {    
             bool leader = false;
             for (std::list<msg_struct *>::iterator i = lpsClientInfo.begin(); i != lpsClientInfo.end(); ++i)
@@ -31,7 +45,7 @@ void initiate_leader_election(){
                     leader = false;
             }
 
-            if (leader)
+            if (leader && ELECTION_IN_PROGRESS == true)
             {
                 // declare yourself server
                 is_server = true;
@@ -41,21 +55,18 @@ void initiate_leader_election(){
                 for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i) 
 		        {
 
-                    struct in_addr ipAddr = (*i)->sin_addr; 
-                    char addrStr[INET_ADDRSTRLEN];
-                    inet_ntop( AF_INET, &i, addrStr, INET_ADDRSTRLEN);
+                    int port = ntohs(((*i))->sin_port);
 
                     // use ip address to check that we don't self send
-                    if (strcmp(sMyInfo.ipAddr.c_str(), addrStr) != 0)
+                    if (sMyInfo.port != port)
                     {
                         // we have the highest port so we declare ourselves lader
                         // and broadcast message to all
                         char acBuffer[BUFF_SIZE];
                         memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
                 
-                        //sprintf(portStr, "%d", sMyInfo.port);
+                        // assemble NEW_LEADER_ELECTED message and send
                         sprintf(&acBuffer[MSG_TYPE], "%d", (int) messageType::NEW_LEADER_ELECTED);
-
                         strcpy(&acBuffer[DATA], sMyInfo.ipAddr.c_str());
                         int iTempIndex = DATA + strlen(&acBuffer[DATA]) + 1;
                         sprintf(&acBuffer[iTempIndex], "%d", sMyInfo.port);
@@ -67,7 +78,23 @@ void initiate_leader_election(){
 	    	        }
                 }
             }
-	   	}
+
+            // if we waited longer that allocated time, quit
+            if( std::clock() - current  > interval * 1000000)
+                break;
+        }
     }
+    // reset for next election
+    ELECTION_IN_PROGRESS = true;
+
+    printf("leader election finished.\n");
 }
 
+
+void interrupt_leader_election()
+{
+    ELECTION_IN_PROGRESS = false;
+}
+
+
+#endif // __LEADER_ELECTION__
