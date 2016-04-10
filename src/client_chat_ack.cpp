@@ -19,10 +19,9 @@
 
 void check_ack_sb()
 {
-    if (!is_server) {
-        double diff;
-        char buf[BUFF_SIZE];
-		while (1) {
+ 
+            double diff;
+            char buf[BUFF_SIZE];
 		    std::map <int ,msg_struct *>::iterator it;
 
 		    
@@ -30,12 +29,13 @@ void check_ack_sb()
 		    {
 				msg_struct* temp = it-> second;
                 diff = time(NULL) - temp->timestamp;
-				if(diff>4 && temp->attempts >=2)
+				if(diff>6 && temp->attempts >=2)
 				{
                     //TODO
                     printf("Initiate Leader election");
+                    break;
 				}
-				else if(diff > 4 && temp->attempts < 2)
+				else if(diff > 6 && temp->attempts < 2)
 				{
 					std::string message = temp->data;
 	            	sprintf(&buf[MSG_TYPE], "%d", temp->msgType);
@@ -46,14 +46,14 @@ void check_ack_sb()
 		            int n = sendto(sockfd, buf, sizeof(buf), 0, (struct sockaddr *)&sServerAddr, sizeof(sServerAddr));
 		            if (n < 0) 
 		                perror("ERROR in sendto");
-		            sentbufferMutex.lock();
+		            //sentbufferMutex.lock();
 		            temp->timestamp = time(NULL);
 		            temp->attempts++;
-		            sentbufferMutex.unlock();
+		            //sentbufferMutex.unlock();
 				}
 			}
-			
-        }
-    }
+ 
+        
+    
 }
 
