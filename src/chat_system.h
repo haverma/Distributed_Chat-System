@@ -92,16 +92,17 @@ extern std::string username;
 
 extern bool is_server;
 
-extern std::queue<msg_struct *> qpsBroadcastq;
-extern std::list<sockaddr_in *> lpsClients;
-extern std::list<msg_struct *> lpsClientInfo;
-extern std::list<int> liCurrentclientport;
-extern std::map<int, msg_struct *> holdbackMap;
-extern int iSeqNum, iExpSeqNum;
-extern int iMsgId;
-extern std::map<int, msg_struct *> broadcastBufferMap;
-extern std::map<int, msg_struct *> sentBufferMap;
-extern std::map<int, msg_struct *> broadcastBufferMap;
+
+extern std::queue<msg_struct *> qpsBroadcastq;         /* broadcast queue */
+extern std::list<sockaddr_in *> lpsClients;            /* client sockaddr */
+extern std::list<msg_struct *> lpsClientInfo;          /* client str */
+extern std::map<int, msg_struct *> holdbackMap;        /* holdmap as seqnum, msgsruct */
+extern int iSeqNum, iExpSeqNum;                        /* server seq, expected from client */
+extern int iMsgId;                                     /* client'smsg id*/
+extern std::map<int, msg_struct *> broadcastBufferMap; /* server broadcast queue */
+extern std::map<int, msg_struct *> sentBufferMap;      /* send broadcasst msg */
+extern std::list<int> liCurrentclientport;             /*Buffer for keeping an account of client heartbeat message*/
+
 
 extern std::mutex seqNumMutex;
 extern std::mutex msgIdMutex;
