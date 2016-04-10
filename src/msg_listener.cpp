@@ -379,7 +379,7 @@ int process_rec_msg(char * acBuffer)
                     sServerInfo.ipAddr = msg.ipAddr;
                     sServerInfo.port = msg.port;
 
-                    / Send REQ_CONNECTION to server now
+                    // Send REQ_CONNECTION to server now
                     memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
                     sprintf(&acBuffer[MSG_TYPE], "%d", (int)messageType::REQ_CONNECTION);
                     strcpy(&acBuffer[NAME], msg.name.c_str());
