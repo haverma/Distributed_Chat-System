@@ -36,14 +36,18 @@ void initiate_leader_election()
 	   while(true && ELECTION_IN_PROGRESS == true)
 	   {    
             bool leader = false;
+            int highest = 0;
             for (std::list<msg_struct *>::iterator i = lpsClientInfo.begin(); i != lpsClientInfo.end(); ++i)
-	       //message = message + (*i)->name + ":" + (*i)->ipAddr + ":" + std::to_string((*i)->port) + "\n";
+	        //message = message + (*i)->name + ":" + (*i)->ipAddr + ":" + std::to_string((*i)->port) + "\n";
             {
-               if (sMyInfo.port >= (*i)->port)
-                    leader = true;
-                else
-                    leader = false;
+               if (highest <= (*i)->port)
+                    highest = (*i)->port;
             }
+
+            if (sMyInfo.port >= highest)
+                is_server = true;
+            else
+                is_server = false;
 
             if (leader && ELECTION_IN_PROGRESS == true)
             {
