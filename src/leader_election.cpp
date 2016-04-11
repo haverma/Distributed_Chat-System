@@ -31,7 +31,7 @@ void initiate_leader_election()
        // start timer
        std::clock_t start;
        double current = std::clock();
-       double interval = 10; //10 seconds
+       double interval = 1; //10 seconds
 
 	   while(true && ELECTION_IN_PROGRESS == true)
 	   {    
@@ -45,9 +45,13 @@ void initiate_leader_election()
             }
 
             if (sMyInfo.port >= highest)
-                is_server = true;
+                leader = true;
             else
-                is_server = false;
+                leader = false;
+
+
+            // XXX don't bother sending for now
+            ELECTION_IN_PROGRESS == false;
 
             if (leader && ELECTION_IN_PROGRESS == true)
             {
@@ -58,7 +62,6 @@ void initiate_leader_election()
                 
                 for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i) 
 		        {
-
                     int port = ntohs(((*i))->sin_port);
 
                     // use ip address to check that we don't self send
