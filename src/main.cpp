@@ -16,7 +16,7 @@ struct sockaddr_in sListeningAddr;
 struct sockaddr_in sRecAddr;
 int iRecAddrLen;
 int iListeningSocketFd, iSendingSocketFd;
-int iListeningPortNum = 8216;
+int iListeningPortNum; // = 8218;
 std::string username;
 bool is_server;
 std::queue<msg_struct *> qpsBroadcastq;
@@ -25,6 +25,7 @@ std::list<sockaddr_in *> lpsClients;
 std::map<int, msg_struct *> holdbackMap;
 std::map<int, msg_struct *> sentBufferMap;
 std::map<int, msg_struct *> broadcastBufferMap;
+std::list<int> liCurrentClientPort; 
 int iSeqNum = 0, iExpSeqNum = 0;
 int iMsgId = 0;
 std::mutex seqNumMutex;
@@ -33,6 +34,7 @@ std::mutex broadcastMutex;
 std::mutex clientListMutex;
 std::mutex broadcastbufferMutex;
 std::mutex sentbufferMutex;
+std::mutex CurrentClientsListMutex;
 msg_struct sServerInfo, sMyInfo;
 sockaddr_in sServerAddr;
 
@@ -41,6 +43,7 @@ void user_listener();
 void msg_listener();
 void check_ack_sb();
 void broadcast_message();
+void client_heartbeat();
 
 
 int main(int argc, char ** argv)
@@ -52,11 +55,15 @@ int main(int argc, char ** argv)
     sockaddr_in * psSockAddr;
     char acTemp[50];
 
-    if(argc != 2 && argc != 3)
+    if(argc != 2 && argc != 3 && argc != 4)
     {
         fprintf(stderr,"Incorrect number of arguments supplied. Please retry\n");
         exit(1);
     }
+
+    if(argc == 3)
+        iListeningPortNum = atoi(argv[2]);
+    else iListeningPortNum = atoi(argv[3]);
 
     printf("\nThis user listens to port number '%d'\n", iListeningPortNum);
 
@@ -103,13 +110,15 @@ int main(int argc, char ** argv)
     }
 
     /* If initiating a new chat */
-    if(2 == argc)
+    if(3 == argc)
     {
         is_server = true;
         /* Start all the threads */
         std::thread user_listener_thread(user_listener);
         std::thread msg_listener_thread(msg_listener);
         std::thread broadcast_message_thread(broadcast_message);
+        std::thread client_heartbeat_thread(client_heartbeat);
+
         //std::thread client_chat_ack_thread(check_ack_sb);
 
         sServerAddr.sin_family = AF_INET;
@@ -160,6 +169,8 @@ int main(int argc, char ** argv)
         user_listener_thread.join();
         msg_listener_thread.join();
         broadcast_message_thread.join();
+        client_heartbeat_thread.join();
+
         //client_chat_ack_thread.join();
     }
 
