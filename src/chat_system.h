@@ -33,7 +33,8 @@ typedef enum MessageType
     SERVER_INFO,                /* When a client sends server info to incoming */
     NEW_CLIENT_INFO,            /* When a new client is added to the chat system */
     CLIENT_LIST,                /* When server sends an updated client list to all clients */
-    RETRIEVE_MSG                /* When the client requests the server for a msg with particular seq num */
+    RETRIEVE_MSG,                /* When the client requests the server for a msg with particular seq num */
+    CLIENT_HEARTBEAT            /*Heart beat message sent from server to all the clients*/
 
 } messageType;
 
@@ -92,6 +93,7 @@ extern std::string username;
 
 extern bool is_server;
 
+
 extern std::queue<msg_struct *> qpsBroadcastq;         /* broadcast queue */
 extern std::list<sockaddr_in *> lpsClients;            /* client sockaddr */
 extern std::list<msg_struct *> lpsClientInfo;          /* client str */
@@ -100,6 +102,8 @@ extern int iSeqNum, iExpSeqNum;                        /* server seq, expected f
 extern int iMsgId;                                     /* client'smsg id*/
 extern std::map<int, msg_struct *> broadcastBufferMap; /* server broadcast queue */
 extern std::map<int, msg_struct *> sentBufferMap;      /* send broadcasst msg */
+extern std::list<int> liCurrentClientPort;             /*Buffer for keeping an account of client heartbeat message*/
+
 
 extern std::mutex seqNumMutex;
 extern std::mutex msgIdMutex;
@@ -107,6 +111,7 @@ extern std::mutex broadcastMutex;
 extern std::mutex clientListMutex;
 extern std::mutex broadcastbufferMutex;
 extern std::mutex sentbufferMutex;
+extern std::mutex CurrentClientsListMutex;
 
 extern msg_struct sServerInfo;
 extern sockaddr_in sServerAddr;

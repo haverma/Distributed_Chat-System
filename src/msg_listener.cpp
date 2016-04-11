@@ -355,7 +355,7 @@ int process_rec_msg(char * acBuffer)
                 display_client_list();
             }
 
-        case NEW_LEADER_ELECTED: // using SERVER_INFO
+        /*case NEW_LEADER_ELECTED: // using SERVER_INFO
             {
                 if(!is_server)
                 {
@@ -389,6 +389,27 @@ int process_rec_msg(char * acBuffer)
                 }
                 break;
             
+            }*/
+        case CLIENT_HEARTBEAT:
+            {
+                if(!is_server)
+                {
+                    
+                    memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
+                    sprintf(&acBuffer[MSG_TYPE], "%d", (int)messageType::CLIENT_HEARTBEAT);
+                    sprintf(&acBuffer[DATA],"%d", iListeningPortNum);
+                    sRecAddr = sServerAddr;
+                    iLenToBeSent = BUFF_SIZE;
+
+                    
+                }
+                else
+                {
+                    int iPortNo = atoi(&acBuffer[DATA]);
+                    liCurrentClientPort.remove(iPortNo);
+                }
+                
+                break;
             }
     }
     return iLenToBeSent;
