@@ -44,7 +44,7 @@ typedef enum MessageType
 
 
 /* Defines the max size of the payload that can be sent */
-#define BUFF_SIZE 512
+#define BUFF_SIZE 500
 
 /* Defines the index of msg type */
 #define MSG_TYPE 0
@@ -54,16 +54,16 @@ typedef enum MessageType
 
 /* Defines the index of message ID of the msg sent by client to server.
  * Required to receive ack and verify the msg */
-#define MSG_ID 7
+#define MSG_ID 9
 
 /* Defines the index of client name (30 characters) to which the payload belongs */
-#define NAME 11
+#define NAME 15
 
 /* Defines the index at which the the listening port num of sender resides */
-#define SENDER_LISTENING_PORT 42
+#define SENDER_LISTENING_PORT 46
 
 /* Defines the index of data to be sent */
-#define DATA 48
+#define DATA 52
 
 /* Defines the threshold number of msgs that can be stored in the broadcast
  * buffer map */

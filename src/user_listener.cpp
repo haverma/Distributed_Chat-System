@@ -32,7 +32,7 @@ void user_listener()
         iTemp = 0;
         
         /* Fetch the user input */
-        fgets(&acBuffer[DATA], BUFF_SIZE - NAME - 30, stdin);
+        fgets(&acBuffer[DATA], BUFF_SIZE - DATA - 1, stdin);
         iTemp = strlen(&acBuffer[DATA]);
         acBuffer[DATA + iTemp - 1] = '\0';
         if(!strcmp(&acBuffer[DATA], ""))
