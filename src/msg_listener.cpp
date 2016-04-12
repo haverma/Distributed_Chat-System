@@ -281,13 +281,16 @@ int process_rec_msg(char * acBuffer)
                     holdbackMap.insert(std::pair<int, msg_struct *>(msg.seqNum, psMsg));
 
                     if(msg.seqNum >= iExpSeqNum + 2)
-                    {
-                        memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
-                        sprintf(&acBuffer[MSG_TYPE], "%d", (int)messageType::RETRIEVE_MSG);
-                        sprintf(&acBuffer[SENDER_LISTENING_PORT], "%d", iListeningPortNum);
-                        sprintf(&acBuffer[SEQ_NUM],"%d", iExpSeqNum);
-                        sRecAddr = sServerAddr;
-                        iLenToBeSent = BUFF_SIZE;
+                    {   for(int iterator = iExpSeqNum; iterator < msg.seqNum; iterator++)
+                        {
+                            memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
+                            sprintf(&acBuffer[MSG_TYPE], "%d", (int)messageType::RETRIEVE_MSG);
+                            sprintf(&acBuffer[SENDER_LISTENING_PORT], "%d", iListeningPortNum);
+                            sprintf(&acBuffer[SEQ_NUM],"%d", iterator);
+                            sRecAddr = sServerAddr;
+                            iLenToBeSent = BUFF_SIZE;
+                            sendto(iSendingSocketFd, acBuffer, iLenToBeSent, 0,(struct sockaddr *) &sRecAddr, iRecAddrLen);
+                        }
 
                     }
                     else
@@ -302,12 +305,15 @@ int process_rec_msg(char * acBuffer)
                 {
                     initiate_leader_election();
                 }*/
+
+                /*
                 else
                 {
              
                     fprintf(stderr, "Received unexpected msg\n");
                     break;
                 }
+                */
                 
                 break;
             }

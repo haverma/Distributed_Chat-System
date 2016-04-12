@@ -32,7 +32,9 @@ void client_heartbeat(){
 	   	   }
 	   	   else
 	   	   {
+                //clientListMutex.lock();
                 flush_dead_clients(liCurrentClientPort);
+                //clientListMutex.unlock();
                 liCurrentClientPort.clear();
                 for (std::list<sockaddr_in *>::iterator i = std::next(lpsClients.begin()); i != lpsClients.end(); ++i)
 	   	   		{
@@ -78,7 +80,9 @@ void flush_dead_clients(std::list<int> deadclients)
                 broadcastMutex.lock();
                 qpsBroadcastq.push(psMsg);
                 broadcastMutex.unlock();
+                
                 iter = lpsClientInfo.erase(iter);
+               
 	        }
 
 
@@ -94,7 +98,9 @@ void flush_dead_clients(std::list<int> deadclients)
                     fprintf(stderr, "Malloc failed. Please retry\n");
                     break;
                 }
+               
                 iter1 = lpsClients.erase(iter1);
+        
 	        }
 	        
 
