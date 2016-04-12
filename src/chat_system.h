@@ -13,12 +13,13 @@
 
 typedef enum MessageType
 {
-    /* 0 to 10 */
+    /* 0 to 11 */
 
     CHAT,                       /* When server receives a msg to be broadcasts to other clients */
     MSG,                        /* When server broadcasts msg to all clients */
     ACK,                        /* When server wants to acknowledge receipt of CHAT from client */
     REQ_CONNECTION,             /* When a request for new connection is received */
+    CONNECTION_ESTABLISHED,     /* When the client gets a response from server saying the connection is est. */
     SERVER_ALIVE_CHECK,         /* When client sends a msg to check if server is alive */
     SERVER_ALIVE_RESPONSE,      /* When server responds to client saying it is alive */
     CLIENT_ALIVE_CHECK,         /* When server sends a msg to check if client is alive */
@@ -27,14 +28,14 @@ typedef enum MessageType
     STOP_LEADER_ELECTION,       /* When a higher client asks another to stop election */
     NEW_LEADER_ELECTED,         /* When a new leader is elected */
 
-    /* 11 to 13 */
+    /* 12 to 17 */
 
-    MSG_NOT_FOUND,              /*When the message is not found in broadcast buffer*/
+    MSG_NOT_FOUND,              /* When the message is not found in broadcast buffer*/
     SERVER_INFO,                /* When a client sends server info to incoming */
     NEW_CLIENT_INFO,            /* When a new client is added to the chat system */
     CLIENT_LIST,                /* When server sends an updated client list to all clients */
-    RETRIEVE_MSG,                /* When the client requests the server for a msg with particular seq num */
-    CLIENT_HEARTBEAT            /*Heart beat message sent from server to all the clients*/
+    RETRIEVE_MSG,               /* When the client requests the server for a msg with particular seq num */
+    CLIENT_HEARTBEAT            /* Heart beat message sent from server to all the clients*/
 
 } messageType;
 
@@ -58,8 +59,11 @@ typedef enum MessageType
 /* Defines the index of client name (30 characters) to which the payload belongs */
 #define NAME 11
 
+/* Defines the index at which the the listening port num of sender resides */
+#define SENDER_LISTENING_PORT 42
+
 /* Defines the index of data to be sent */
-#define DATA 42
+#define DATA 48
 
 /* Defines the threshold number of msgs that can be stored in the broadcast
  * buffer map */
@@ -76,6 +80,7 @@ typedef struct msg_struct
     std::string name;           /* Name of the client to which the msg belongs */
     std::string ipAddr;         /* IP address of the client */
     int port;                   /* Corresponding port */
+    int senderPort;             /* Listening port number of the sender */
     struct sockaddr_in * addr;  /* Contains the addr info of the sender */
     std::string data;           /* Data present in the payload */
     int attempts;               /* No. of attempts taken by the client to send this message to the server*/

@@ -66,6 +66,7 @@ int process_rec_msg(char * acBuffer)
     msg.msgType = (messageType) atoi(acBuffer);
     msg.addr = &sRecAddr;
     msg.name = &acBuffer[NAME];
+    msg.senderPort = atoi(&acBuffer[SENDER_LISTENING_PORT]);
     msg.data = &acBuffer[DATA];
     msg.seqNum = atoi(&acBuffer[SEQ_NUM]);
     msg.msgId = atoi(&acBuffer[MSG_ID]);
@@ -143,11 +144,23 @@ int process_rec_msg(char * acBuffer)
                         broadcastMutex.lock();
                         qpsBroadcastq.push(psMsg);
                         broadcastMutex.unlock();
-                        iLenToBeSent = 0;
+
+                        /* Send CONNECTION_ESTABLISHED to client */
+                        sRecAddr.sin_port = htons(atoi(&acBuffer[DATA]));
+                        memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
+                        sprintf(&acBuffer[MSG_TYPE], "%d", (int) messageType::CONNECTION_ESTABLISHED);
+                        seqNumMutex.lock();
+                        sprintf(&acBuffer[SEQ_NUM], "%d", iSeqNum);
+                        seqNumMutex.unlock();
+                        iLenToBeSent = BUFF_SIZE;
                     }
                 }
                 else
                 {
+                    /* Send SERVER_INFO to client. Note that sRecAddr's port should be
+                     * set to listening port of whoever sent the msg. Only
+                     * then, the response will reach the client */
+                    sRecAddr.sin_port = htons(atoi(&acBuffer[DATA]));
                     memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
                     sprintf(&acBuffer[MSG_TYPE], "%d", (int) messageType::SERVER_INFO);
                     strcpy(&acBuffer[NAME], sServerInfo.name.c_str());
@@ -156,6 +169,13 @@ int process_rec_msg(char * acBuffer)
                     sprintf(&acBuffer[iTempIndex], "%d", sServerInfo.port);
                     iLenToBeSent = BUFF_SIZE;
                 }
+                break;
+            }
+
+        case CONNECTION_ESTABLISHED:
+            {
+                iExpSeqNum = msg.seqNum;
+                iLenToBeSent = 0;
                 break;
             }
 
@@ -219,7 +239,10 @@ int process_rec_msg(char * acBuffer)
                     qpsBroadcastq.push(psMsg);
                     broadcastMutex.unlock();
 
-                    /* Send ACK to client */
+                    /* Send ACK to client. Note that sRecAddr's port should be
+                     * set to listening port of whoever sent the msg. Only
+                     * then, the response will reach the client */
+                    sRecAddr.sin_port = htons(atoi(&acBuffer[SENDER_LISTENING_PORT]));
                     memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
                     sprintf(&acBuffer[MSG_TYPE], "%d", (int)messageType::ACK);
                     sprintf(&acBuffer[MSG_ID], "%d", msg.msgId);
@@ -261,6 +284,7 @@ int process_rec_msg(char * acBuffer)
                     {
                         memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
                         sprintf(&acBuffer[MSG_TYPE], "%d", (int)messageType::RETRIEVE_MSG);
+                        sprintf(&acBuffer[SENDER_LISTENING_PORT], "%d", iListeningPortNum);
                         sprintf(&acBuffer[SEQ_NUM],"%d", iExpSeqNum);
                         sRecAddr = sServerAddr;
                         iLenToBeSent = BUFF_SIZE;
@@ -293,7 +317,17 @@ int process_rec_msg(char * acBuffer)
                 if(!is_server)
                 {
                     /* Remove entry from sent buffer */
-                    //sentbufferMutex.lock();
+                    sentbufferMutex.lock();
+
+                    /* Logging */
+                    /*
+                    std::cout << "Current msg ID recd: " << msg.msgId << "\n\n";
+                    for(auto it = sentBufferMap.cbegin(); it != sentBufferMap.cend(); ++it)
+                    {
+                        std::cout << it->first << " " << it->second << "\n";
+                    }
+                    */
+
                     if (sentBufferMap.find(msg.msgId) != sentBufferMap.end())
                     {
                         sentBufferMap.erase(msg.msgId);
@@ -306,7 +340,7 @@ int process_rec_msg(char * acBuffer)
                     if(sentBufferMap.size() > 0){
                         check_ack_sb();
                     }
-                    //sentbufferMutex.unlock();
+                    sentbufferMutex.unlock();
                 }
                 iLenToBeSent = 0;
                 break;
@@ -325,10 +359,14 @@ int process_rec_msg(char * acBuffer)
                 if(is_server)
                 {
                     /* Retrieve msg from the broadcast buffer and send that
-                     * msg back to the client */
+                     * msg back to the client. Note that sRecAddr's port should be
+                     * set to listening port of whoever sent the msg. Only
+                     * then, the response will reach the client */
+                    sRecAddr.sin_port = htons(atoi(&acBuffer[SENDER_LISTENING_PORT]));
                     memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
                     sprintf(&acBuffer[SEQ_NUM], "%d",msg.seqNum);
                     get_msg_from_bbm(msg.seqNum, &acBuffer[NAME], &acBuffer[DATA]);
+
                     /*if the sequence number is not found in the buffer map 
                     *tell the client to increase the sequence number*/
                     if(&acBuffer[NAME] == NULL && &acBuffer[DATA] == NULL)
@@ -353,6 +391,8 @@ int process_rec_msg(char * acBuffer)
                     update_client_list(&msg);
                 }
                 display_client_list();
+                iLenToBeSent = 0;
+                break;
             }
 
         /*case NEW_LEADER_ELECTED: // using SERVER_INFO
@@ -407,6 +447,7 @@ int process_rec_msg(char * acBuffer)
                 {
                     int iPortNo = atoi(&acBuffer[DATA]);
                     liCurrentClientPort.remove(iPortNo);
+                    iLenToBeSent = 0;
                 }
                 
                 break;
