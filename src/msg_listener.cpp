@@ -274,16 +274,16 @@ int process_rec_msg(char * acBuffer)
                 }
 
                 // XXX TESTING LEADER ELECTION XXX
-                //if(strcmp(msg.name.c_str(), "election") == 0)
-                //{
-                //    initiate_leader_election();
-                //}
-                /*else
+               /* if(strcmp(msg.name.c_str(), "election") == 0)
+                {
+                    initiate_leader_election();
+                }*/
+                else
                 {
              
                     fprintf(stderr, "Received unexpected msg\n");
                     break;
-                }*/
+                }
                 
                 break;
             }
@@ -353,9 +353,11 @@ int process_rec_msg(char * acBuffer)
                     update_client_list(&msg);
                 }
                 display_client_list();
+                iLenToBeSent = 0;
+                break;
             }
 
-        /*case NEW_LEADER_ELECTED: // using SERVER_INFO
+        case NEW_LEADER_ELECTED: // using SERVER_INFO
             {
                 if(!is_server)
                 {
@@ -389,7 +391,7 @@ int process_rec_msg(char * acBuffer)
                 }
                 break;
             
-            }*/
+            }
         case CLIENT_HEARTBEAT:
             {
                 if(!is_server)
@@ -407,6 +409,7 @@ int process_rec_msg(char * acBuffer)
                 {
                     int iPortNo = atoi(&acBuffer[DATA]);
                     liCurrentClientPort.remove(iPortNo);
+                    iLenToBeSent = 0;
                 }
                 
                 break;
