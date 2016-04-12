@@ -1,3 +1,6 @@
+#ifndef __USER_LISTENER__
+#define __USER_LISTENER__
+
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -82,3 +85,4 @@ void user_listener() {
 
     }
 }
+#endif // __USER_LISTENER__

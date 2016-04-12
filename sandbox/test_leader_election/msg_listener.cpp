@@ -1,3 +1,6 @@
+#ifndef __MSG_LISTENER__
+#define __MSG_LISTENER__
+
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,7 +53,7 @@ void msg_listener() {
             sendto(iSendingSocketFd, acBuffer, iLenToBeSent, 0,
                     (struct sockaddr *) &sRecAddr, iRecAddrLen);
         }
-        printf("%s\n", &acBuffer[DATA]);
+        // printf("%s\n", &acBuffer[DATA]);
     }
 }
 
@@ -215,6 +218,7 @@ int process_rec_msg(char * acBuffer) {
                 /* Display msg and then display all other msgs from the hbm
                  * that should be displayed */
                 /* TODO Implement the below function */
+                printf("BEFORE DISPLAY MESSAGE\n");
                 display(&msg);
                 iExpSeqNum++;
                 iLenToBeSent = 0;
@@ -396,7 +400,7 @@ void get_msg_from_bbm(int seq_number, char * name, char * data) {
     if (buffer_map_iterator != broadcastBufferMap.end()) {
         /*Storing the message structure in a
         temp variable the structure*/
-        msg_struct * temp = buffer_map_iterator -> second;
+        msg_struct * temp = buffer_map_iterator->second;
         strcpy(name, temp->name.c_str());
         strcpy(data, temp->data.c_str());
     }
@@ -494,3 +498,5 @@ void display_client_list() {
         std::cout << psClientInfo->name + " " + psClientInfo->ipAddr + ":" + std::to_string(psClientInfo->port) << "\n";
     }
 }
+
+#endif // __MSG_LISTENER__

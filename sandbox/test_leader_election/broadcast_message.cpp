@@ -1,3 +1,6 @@
+#ifndef __BROADCAST_MESSAGE__
+#define __BROADCAST_MESSAGE__
+
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,8 +22,8 @@ std::string collect_clients_info();
 
 void broadcast_message() {
 
-    if (is_server) {
-        while (1) {
+     while (1){
+        if (is_server) {
             char buf[BUFF_SIZE];
             while (!qpsBroadcastq.empty()) {
                 //picking the first element in the broadcast queue
@@ -73,16 +76,16 @@ bool trim_broadcast_message(std::map<int, msg_struct *> broadcastbuffer) {
     //Taking the first element from the broadcast buffer
     it = broadcastbuffer.begin();
     broadcastbufferMutex.lock();
-    msg_struct* temp = it-> second;
+    msg_struct* temp = it->second;
 
 
     // Deleting the element and freeing the pointer to struc
     if (temp != NULL) {
-        if (temp -> addr != NULL) {
+        if (temp->addr != NULL) {
             //Freeing the address structure contained 
             //by the addr structure
-            free(temp -> addr);
-            temp -> addr = NULL;
+            free(temp->addr);
+            temp->addr = NULL;
         }
     }
     free(temp);
@@ -101,3 +104,5 @@ std::string collect_clients_info() {
     }
     return message;
 }
+
+#endif // __BROADCAST_MESSAGE__

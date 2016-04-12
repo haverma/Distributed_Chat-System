@@ -1,3 +1,6 @@
+#ifndef __CLIENT_ACK__
+#define __CLIENT_ACK__
+
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,3 +52,4 @@ void check_ack_sb() {
 
 }
 
+#endif // __CLIENT_ACK__

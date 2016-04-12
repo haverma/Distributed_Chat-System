@@ -33,7 +33,7 @@ void initiate_leader_election() {
         double current = std::clock();
         double interval = 1; //10 seconds
 
-        while (ELECTION_IN_PROGRESS == true) {
+        while (ELECTION_IN_PROGRESS) {
             bool leader = false;
             int highest = 0;
             for (std::list<msg_struct *>::iterator i = lpsClientInfo.begin(); i != lpsClientInfo.end(); ++i)
@@ -49,7 +49,7 @@ void initiate_leader_election() {
             else
                 leader = false;
 
-            if (ELECTION_IN_PROGRESS == true) {
+            if (ELECTION_IN_PROGRESS) {
                 printf("running logic \n");
                 // declare yourself server
                 if (leader)
@@ -64,26 +64,28 @@ void initiate_leader_election() {
                     // assemble client list to send to
                     for (std::list<msg_struct *>::iterator i = lpsClientInfo.begin(); i != lpsClientInfo.end(); ++i) {
                         // populating the message struct from the tokens from strtok
-                        sockaddr_in* psAddr = new sockaddr_in; //();
-                        if (psAddr == NULL) {
-                            fprintf(stderr, "Malloc failed. Please retry\n");
-                            break;
+                        
+                        if (sMyInfo.port != (*i)->port)
+                        {
+                            sockaddr_in* psAddr = new sockaddr_in; //();
+                            if (psAddr == NULL) {
+                                fprintf(stderr, "Malloc failed. Please retry\n");
+                                break;
+                            }
+                            psAddr->sin_family = AF_INET;
+                            inet_pton(AF_INET, (*i)->ipAddr.c_str(), &(psAddr->sin_addr));
+                            psAddr->sin_port = htons((*i)->port);
+
+                            /* Insert it into the two client lists */
+                            clientListMutex.lock();
+                            lpsClients.push_back(psAddr);
+                            clientListMutex.unlock();
                         }
-                        psAddr->sin_family = AF_INET;
-                        inet_pton(AF_INET, (*i)->ipAddr.c_str(), &(psAddr->sin_addr));
-                        psAddr->sin_port = htons((*i)->port);
-
-                        /* Insert it into the two client lists */
-                        clientListMutex.lock();
-                        lpsClients.push_back(psAddr);
-                        clientListMutex.unlock();
                     }
-
 
                     for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i) {
                         int port = ntohs(((*i))->sin_port);
-
-
+                        
                         // use ip address to check that we don't self send
                         if (sMyInfo.port != port) {
                             printf("current client port to send to : %d\n", port);
@@ -104,11 +106,13 @@ void initiate_leader_election() {
                                 perror("ERROR in sendto");
                         }
                     }
+                    // now that we are the server we can break the loop
+                    break;
                 }
             }
             // if we waited longer that allocated time, quit
             //if( std::clock() - current  > interval * 1000000)
-            break;
+                break;
         }
     }
     // reset for next election

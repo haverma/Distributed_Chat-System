@@ -1,3 +1,6 @@
+#ifndef __CLIENT_HEARTBEAT__
+#define __CLIENT_HEARTBEAT__
+
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,8 +21,8 @@ void flush_dead_clients(std::list<int> deadclients);
 
 void client_heartbeat() {
 
-    if (is_server) {
-        while (1) {
+    while (1){
+        if (is_server){
             if (liCurrentClientPort.empty()) {
                 CurrentClientsListMutex.lock();
                 for (std::list<sockaddr_in *>::iterator i = std::next(lpsClients.begin()); i != lpsClients.end(); ++i) {
@@ -86,3 +89,5 @@ void flush_dead_clients(std::list<int> deadclients) {
         }
     }
 }
+
+#endif // __CLIENT_HEARTBEAT__
