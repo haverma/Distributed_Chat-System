@@ -291,6 +291,7 @@ int process_rec_msg(char * acBuffer)
                             iLenToBeSent = BUFF_SIZE;
                             sendto(iSendingSocketFd, acBuffer, iLenToBeSent, 0,(struct sockaddr *) &sRecAddr, iRecAddrLen);
                         }
+                        iLenToBeSent = 0;
 
                     }
                     else

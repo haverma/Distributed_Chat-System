@@ -69,7 +69,7 @@ void broadcast_message(){
 		                perror("ERROR in sendto"); 
 		        }
 		    }
-		    sleep(1);
+		    //sleep(1);
 	    }
     }
 }
