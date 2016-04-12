@@ -117,7 +117,7 @@ int main(int argc, char ** argv)
         std::thread user_listener_thread(user_listener);
         std::thread msg_listener_thread(msg_listener);
         std::thread broadcast_message_thread(broadcast_message);
-        std::thread client_heartbeat_thread(client_heartbeat);
+        //std::thread client_heartbeat_thread(client_heartbeat);
 
         //std::thread client_chat_ack_thread(check_ack_sb);
 
@@ -169,7 +169,7 @@ int main(int argc, char ** argv)
         user_listener_thread.join();
         msg_listener_thread.join();
         broadcast_message_thread.join();
-        client_heartbeat_thread.join();
+        //client_heartbeat_thread.join();
 
         //client_chat_ack_thread.join();
     }
