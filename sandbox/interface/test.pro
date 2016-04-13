@@ -25,7 +25,8 @@ SOURCES += main.cpp\
 
 HEADERS  += mainwindow.h \
     ui_mainwindow.h \
-    ../test_leader_election/chat_system.h
+    ../test_leader_election/chat_system.h \
+    globals.h
 
 QMAKE_CXXFLAGS += -std=c++11
 

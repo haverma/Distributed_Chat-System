@@ -14,7 +14,7 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
-
+    void updateText(QString str);
 private slots:
     void on_messageBox_textChanged();
 

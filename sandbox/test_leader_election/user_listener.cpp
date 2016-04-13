@@ -14,6 +14,10 @@
 #include <arpa/inet.h>
 #include <time.h>
 
+#include "globals.h"
+bool INTERFACE_UPDATE;
+char INTERFACE_MESSAGE[1024];
+
 void user_listener() {
     char acBuffer[BUFF_SIZE] = "";
     int iTemp = 0;
@@ -37,6 +41,10 @@ void user_listener() {
         acBuffer[DATA + iTemp - 1] = '\0';
         if (!strcmp(&acBuffer[DATA], ""))
             continue;
+
+
+        // interface update
+        w->updateText(&acBuffer[DATA]);
 
         if (is_server) {
             /* Create msg by filling the received msg into a struct and push

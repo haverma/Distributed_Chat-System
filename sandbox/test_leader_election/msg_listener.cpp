@@ -16,6 +16,8 @@
 #include <cstring>
 #include "leader_election.cpp"
 
+#include "globals.h"
+
 int process_rec_msg(char * acBuffer);
 void get_msg_from_bbm(int seqNum, char * name, char * data);
 void check_hbm_and_display();
@@ -411,10 +413,21 @@ void display(msg_struct * message) {
     /*If the message type is a simple message*/
     if (message->msgType == messageType::MSG) {
         std::cout << message->name + ": " + message->data << "\n";
+        std::string tmp_str = message->name;
+        tmp_str+= ": ";
+        tmp_str+= message->data;
+        tmp_str+= "\n";
+        w->updateText(tmp_str.c_str());
     } else if (message->msgType == messageType::NEW_CLIENT_INFO) //if the message is a new client notification
     {
         std::cout << message->data << "\n";
+        w->updateText(message->data.c_str());
     }
+
+    // interface update
+    //INTERFACE_UPDATE = true;
+    //sprintf(INTERFACE_MESSAGE, "%s: %s",  message->name.c_str(), message->data.c_str());
+
 }
 
 void check_hbm_and_display() {
