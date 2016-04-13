@@ -20,7 +20,6 @@ void client_heartbeat();
 void flush_dead_clients(std::list<int> deadclients);
 
 void client_heartbeat() {
-
     while (1){
         if (is_server){
             if (liCurrentClientPort.empty()) {

@@ -21,7 +21,6 @@ bool trim_broadcast_message(std::map<int, msg_struct *> broadcastbuffer);
 std::string collect_clients_info();
 
 void broadcast_message() {
-
      while (1){
         if (is_server) {
             char buf[BUFF_SIZE];

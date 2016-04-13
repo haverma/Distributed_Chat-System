@@ -23,7 +23,6 @@ void check_ack_sb() {
     char buf[BUFF_SIZE];
     std::map <int, msg_struct *>::iterator it;
 
-
     for (it = sentBufferMap.begin(); it != sentBufferMap.end(); ++it) {
         msg_struct* temp = it-> second;
         diff = time(NULL) - temp->timestamp;
