@@ -16,7 +16,7 @@ struct sockaddr_in sListeningAddr;
 struct sockaddr_in sRecAddr;
 int iRecAddrLen;
 int iListeningSocketFd, iSendingSocketFd;
-int iListeningPortNum; // = 8218;
+int iListeningPortNum = 0;
 std::string username;
 bool is_server;
 std::queue<msg_struct *> qpsBroadcastq;
@@ -54,18 +54,15 @@ int main(int argc, char ** argv)
     msg_struct * psMsgStruct;
     sockaddr_in * psSockAddr;
     char acTemp[50];
+    struct sockaddr_in temp;
+    int addrlen = sizeof(temp);
 
-    if(argc != 2 && argc != 3 && argc != 4)
+    if(argc != 2 && argc != 3)
     {
         fprintf(stderr,"Incorrect number of arguments supplied. Please retry\n");
         exit(1);
     }
 
-    if(argc == 3)
-        iListeningPortNum = atoi(argv[2]);
-    else iListeningPortNum = atoi(argv[3]);
-
-    printf("\nThis user listens to port number '%d'\n", iListeningPortNum);
 
     iRecAddrLen = sizeof(sRecAddr);
 
@@ -83,11 +80,22 @@ int main(int argc, char ** argv)
         exit(1);
     }
 
-    if (bind(iListeningSocketFd, (struct sockaddr *) &sListeningAddr, sizeof(sListeningAddr)) < 0)
+    while(!iListeningPortNum)
     {
-        fprintf(stderr, "Error while binding listening socket\n");
-        exit(1);
+        if (bind(iListeningSocketFd, (struct sockaddr *) &sListeningAddr, sizeof(sListeningAddr)) < 0)
+        {
+            fprintf(stderr, "Error while binding listening socket\n");
+            exit(1);
+        }
+
+        if(getsockname(iListeningSocketFd, (struct sockaddr *) &temp, (socklen_t *) &addrlen) == 0 &&
+           temp.sin_family == AF_INET && addrlen == sizeof(temp))
+        {
+            iListeningPortNum = ntohs(temp.sin_port);
+        }
     }
+
+    printf("\nThis user listens to port number '%d'\n", iListeningPortNum);
 
     //get_ip_address(acTemp);
     //if(NULL == acTemp)
@@ -110,7 +118,7 @@ int main(int argc, char ** argv)
     }
 
     /* If initiating a new chat */
-    if(3 == argc)
+    if(2 == argc)
     {
         is_server = true;
         /* Start all the threads */

@@ -31,7 +31,7 @@ void user_listener()
         strcpy(acBuffer, "");
         iTemp = 0;
         /* Fetch the user input */
-        if (fgets(&acBuffer[DATA], BUFF_SIZE - NAME - 30, stdin) == NULL)
+        if (fgets(&acBuffer[DATA], BUFF_SIZE - DATA - 1, stdin) == NULL)
         {
             if(!is_server)
             {

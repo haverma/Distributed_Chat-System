@@ -124,7 +124,7 @@ int process_rec_msg(char * acBuffer)
                             break;
                         }
                         psMsg->msgType = messageType::NEW_CLIENT_INFO;
-                        sprintf(acTempStr, "%s joined a new chat on %s:%d, listening on %s:%d\n",
+                        sprintf(acTempStr, "%s joined the chat on %s:%d, listening on %s:%d\n",
                                 (psClientInfo->name).c_str(), sServerInfo.ipAddr.c_str(),
                                 sServerInfo.port, psClientInfo->ipAddr.c_str(), psClientInfo->port);
                         psMsg->data = acTempStr;
@@ -149,6 +149,7 @@ int process_rec_msg(char * acBuffer)
                         sRecAddr.sin_port = htons(atoi(&acBuffer[DATA]));
                         memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
                         sprintf(&acBuffer[MSG_TYPE], "%d", (int) messageType::CONNECTION_ESTABLISHED);
+                        strcpy(&acBuffer[NAME], username.c_str());
                         seqNumMutex.lock();
                         sprintf(&acBuffer[SEQ_NUM], "%d", iSeqNum);
                         seqNumMutex.unlock();
@@ -174,8 +175,12 @@ int process_rec_msg(char * acBuffer)
 
         case CONNECTION_ESTABLISHED:
             {
-                iExpSeqNum = msg.seqNum;
-                iLenToBeSent = 0;
+                if(!is_server)
+                {
+                    sServerInfo.name = msg.name;
+                    iExpSeqNum = msg.seqNum;
+                    iLenToBeSent = 0;
+                }
                 break;
             }
 
@@ -206,8 +211,8 @@ int process_rec_msg(char * acBuffer)
                     /* Send REQ_CONNECTION to server now */
                     memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
                     sprintf(&acBuffer[MSG_TYPE], "%d", (int)messageType::REQ_CONNECTION);
-                    strcpy(&acBuffer[NAME], msg.name.c_str());
-                    sprintf(&acBuffer[DATA], "%d", msg.port);
+                    strcpy(&acBuffer[NAME], username.c_str());
+                    sprintf(&acBuffer[DATA], "%d", iListeningPortNum);
                     sRecAddr = sServerAddr;
                     iLenToBeSent = BUFF_SIZE;
                 }
