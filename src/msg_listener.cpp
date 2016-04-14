@@ -459,6 +459,47 @@ int process_rec_msg(char * acBuffer)
                 
                 break;
             }
+        case CLIENT_EXITED:
+            {
+                if(is_server)
+                {
+                    int port = atoi(msg.data.c_str());
+                    for (std::list<msg_struct *>::iterator iter = lpsClientInfo.begin(); iter != lpsClientInfo.end(); ++iter)
+                    {
+                        msg_struct * psClientInfo = *iter; 
+                        if(psClientInfo->port == port)
+                        {
+                            msg_struct * psMsg = new msg_struct;//();
+                            if(psMsg == NULL)
+                            {
+                                fprintf(stderr, "Malloc failed. Please retry\n");
+                                break;
+                            }
+                            char acTempStr[100] = "\0";
+                            psMsg->msgType = messageType::NEW_CLIENT_INFO;
+                            sprintf(acTempStr, "NOTICE %s left the chat or crashed",(psClientInfo->name).c_str());
+                            psMsg->data = acTempStr;
+                            broadcastMutex.lock();
+                            qpsBroadcastq.push(psMsg);
+                            broadcastMutex.unlock();               
+                            iter = lpsClientInfo.erase(iter);
+               
+                        }
+
+
+                    }
+                    for (std::list<sockaddr_in *>::iterator iter1 = lpsClients.begin(); iter1 != lpsClients.end(); ++iter1)
+                    {
+            
+                        if(ntohs((*iter1)->sin_port) == port)
+                        {
+                            iter1 = lpsClients.erase(iter1);
+        
+                        }            
+                    }
+                }
+        break;
+        }
     }
     return iLenToBeSent;
 }

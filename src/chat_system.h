@@ -28,14 +28,15 @@ typedef enum MessageType
     STOP_LEADER_ELECTION,       /* When a higher client asks another to stop election */
     NEW_LEADER_ELECTED,         /* When a new leader is elected */
 
-    /* 12 to 17 */
+    /* 12 to 18 */
 
     MSG_NOT_FOUND,              /* When the message is not found in broadcast buffer*/
     SERVER_INFO,                /* When a client sends server info to incoming */
     NEW_CLIENT_INFO,            /* When a new client is added to the chat system */
     CLIENT_LIST,                /* When server sends an updated client list to all clients */
     RETRIEVE_MSG,               /* When the client requests the server for a msg with particular seq num */
-    CLIENT_HEARTBEAT            /* Heart beat message sent from server to all the clients*/
+    CLIENT_HEARTBEAT,            /* Heart beat message sent from server to all the clients*/
+    CLIENT_EXITED               /*Sent to the server when a client is exited*/
 
 } messageType;
 

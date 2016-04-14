@@ -30,9 +30,25 @@ void user_listener()
     {
         strcpy(acBuffer, "");
         iTemp = 0;
-        
         /* Fetch the user input */
-        fgets(&acBuffer[DATA], BUFF_SIZE - NAME - 30, stdin);
+        if (fgets(&acBuffer[DATA], BUFF_SIZE - NAME - 30, stdin) == NULL)
+        {
+            if(!is_server)
+            {
+                /* Store CHAT msg into acBuffer and send it to the server */
+                sprintf(&acBuffer[MSG_TYPE], "%d", (int) messageType::CLIENT_EXITED);
+                sprintf(&acBuffer[DATA], "%d", iListeningPortNum);
+                sendto(iSocketFd, acBuffer, BUFF_SIZE, 0,
+                (struct sockaddr *) &sServerAddr, sizeof(sockaddr_in));
+                exit(1);
+            }
+            else
+            {
+                std::cout<<"Exiting the chat application... Server Closing.. !!"<<"\n";
+                exit(1);
+            }
+                
+        }
         iTemp = strlen(&acBuffer[DATA]);
         acBuffer[DATA + iTemp - 1] = '\0';
         if(!strcmp(&acBuffer[DATA], ""))
