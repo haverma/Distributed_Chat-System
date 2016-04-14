@@ -1,6 +1,3 @@
-#include "mainwindow.h"
-#include <QApplication>
-
 #include <stdio.h>
 #include <iostream>
 #include <map>
@@ -11,11 +8,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <cstring>
-#include "../test_leader_election/chat_system.h"
+#include "./chat_system.h"
 #include <ifaddrs.h>
 #include <thread>
-
-#include "globals.h"
 
 struct sockaddr_in sListeningAddr;
 struct sockaddr_in sRecAddr;
@@ -49,23 +44,6 @@ void msg_listener();
 void check_ack_sb();
 void broadcast_message();
 void client_heartbeat();
-
-MainWindow* w;
-
-void interfaceLoop(int argc, char* argv[])
-{
-    QApplication a(argc, argv);
-    w = new MainWindow(NULL);
-    w->show();
-
-    a.exec();
-    delete w;
-}
-
-void interface(void)
-{
-    interfaceLoop(0, NULL);
-}
 
 int main(int argc, char ** argv) {
     char acBufferLocal[BUFF_SIZE];
@@ -133,7 +111,6 @@ int main(int argc, char ** argv) {
         std::thread msg_listener_thread(msg_listener);
         std::thread broadcast_message_thread(broadcast_message);
         std::thread client_heartbeat_thread(client_heartbeat);
-        std::thread interface_thread(interface);
 
         //std::thread client_chat_ack_thread(check_ack_sb);
 
@@ -183,7 +160,6 @@ int main(int argc, char ** argv) {
         msg_listener_thread.join();
         broadcast_message_thread.join();
         client_heartbeat_thread.join();
-        interface_thread.join();
 
         //client_chat_ack_thread.join();
     }
@@ -197,7 +173,6 @@ int main(int argc, char ** argv) {
         std::thread broadcast_message_thread(broadcast_message);
         std::thread client_heartbeat_thread(client_heartbeat);
         //std::thread client_chat_ack_thread(check_ack_sb);
-        std::thread interface_thread(interface);
 
         /* Set username to what's being passed as an arg */
         username = argv[1];
@@ -247,7 +222,6 @@ int main(int argc, char ** argv) {
         msg_listener_thread.join();
         broadcast_message_thread.join();
         client_heartbeat_thread.join();
-        interface_thread.join();
         //client_chat_ack_thread.join();
     }
 
@@ -281,16 +255,3 @@ void get_ip_address(char * ip) {
 
     return;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

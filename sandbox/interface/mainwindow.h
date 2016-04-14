@@ -14,12 +14,13 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
-
+    void updateText(QString str);
 private slots:
     void on_messageBox_textChanged();
 
 private:
     Ui::MainWindow *ui;
 };
+
 
 #endif // MAINWINDOW_H
