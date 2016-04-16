@@ -61,6 +61,8 @@ void initiate_leader_election()
                 sServerInfo.ipAddr = sMyInfo.ipAddr;
                 sServerInfo.port = sMyInfo.port;
                 is_server = true;
+                iSeqNum = 0;
+                iExpSeqNum = 0;
             }
             else
                 is_server = false;

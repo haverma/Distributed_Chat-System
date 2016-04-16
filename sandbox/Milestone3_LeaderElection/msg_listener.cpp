@@ -227,6 +227,7 @@ int process_rec_msg(char * acBuffer)
                     /* Fill msg struct with data to be sent */
                     //psMsg = (msg_struct *) malloc(sizeof(msg_struct));
                     std::cout<<"Got a message from: " << msg.name << "\n";
+                    printf("seqnum :%d expected: %d\n", iSeqNum, iExpSeqNum);
                     psMsg = new msg_struct;//();
                     if(psMsg == NULL)
                     {
@@ -328,6 +329,7 @@ int process_rec_msg(char * acBuffer)
 
         case ACK:
             {
+                printf("=================== received ACK message ================== \n");
                 if(!is_server)
                 {
                     /* Remove entry from sent buffer */
@@ -432,7 +434,7 @@ int process_rec_msg(char * acBuffer)
                     sServerInfo.name = msg.name;
                     sServerInfo.ipAddr = msg.ipAddr;
                     sServerInfo.port = msg.port;
-                    iExpSeqNum = 0;
+                    //iExpSeqNum = 0;
                     deleteClient(msg.port);
 
                     // Send REQ_CONNECTION to server now
@@ -442,6 +444,9 @@ int process_rec_msg(char * acBuffer)
                     // sprintf(&acBuffer[DATA], "%d", msg.port);
                     //sRecAddr = sServerAddr;
                     iLenToBeSent = 0;
+                    
+                    iSeqNum = 0;
+                    iExpSeqNum = 0;
                 }
                 break;
             
