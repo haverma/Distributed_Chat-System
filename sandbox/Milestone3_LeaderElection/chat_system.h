@@ -122,4 +122,6 @@ extern std::mutex CurrentClientsListMutex;
 extern msg_struct sServerInfo;
 extern sockaddr_in sServerAddr;
 
+extern bool INTERRUPT_LEADER_ELECTION;
+
 #endif
