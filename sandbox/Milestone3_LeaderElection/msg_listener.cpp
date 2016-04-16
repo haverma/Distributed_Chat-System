@@ -514,6 +514,11 @@ int process_rec_msg(char * acBuffer)
                 }
         break;
         }
+        case STOP_LEADER_ELECTION:
+        {
+            INTERRUPT_LEADER_ELECTION = true;
+            break;
+        }
     }
     return iLenToBeSent;
 }
