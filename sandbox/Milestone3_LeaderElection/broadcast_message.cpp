@@ -68,7 +68,7 @@ void broadcast_message(){
 	                perror("ERROR in sendto"); 
 		        for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i) 
 		        {
-		        	std::cout<<" Broadcasting to the client: " << ntohs((*i)->sin_port) <<"\n"; 
+                            //std::cout<<" Broadcasting to the client: " << ntohs((*i)->sin_port) <<"\n"; 
 		        	
 		            n = sendto(sockfd, buf, sizeof(buf), 0, (struct sockaddr *)*i, sizeof(*(*i)));
 		            if (n < 0) 

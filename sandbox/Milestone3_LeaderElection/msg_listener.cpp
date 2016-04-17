@@ -77,6 +77,8 @@ int process_rec_msg(char * acBuffer)
     int iLenToBeSent = 0;
     char acTempStr[100] = "\0";
 
+    printf("-----------------------is_server = %d\n", is_server);
+    
     switch(msg.msgType)
     {
         case REQ_CONNECTION:
@@ -512,11 +514,14 @@ int process_rec_msg(char * acBuffer)
                         }            
                     }
                 }
-        break;
+            break;
         }
         case STOP_LEADER_ELECTION:
         {
+            printf("============== RECEIVED STOP_LEADER_ELECTION ===============\n");
+            printf("============== INTERRUPT_LEADER_ELECTION = %d ===============\n", INTERRUPT_LEADER_ELECTION);
             INTERRUPT_LEADER_ELECTION = true;
+            is_server = false;
             break;
         }
     }

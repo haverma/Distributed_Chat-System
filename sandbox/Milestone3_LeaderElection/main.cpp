@@ -37,7 +37,7 @@ std::mutex sentbufferMutex;
 std::mutex CurrentClientsListMutex;
 msg_struct sServerInfo, sMyInfo;
 sockaddr_in sServerAddr;
-bool INTERRUPT_LEADER_ELECTION;
+bool INTERRUPT_LEADER_ELECTION = false;
 
 void get_ip_address(char * ip);
 void user_listener();
@@ -55,7 +55,6 @@ int main(int argc, char ** argv)
     msg_struct * psMsgStruct;
     sockaddr_in * psSockAddr;
     char acTemp[50];
-    INTERRUPT_LEADER_ELECTION = false;
 
     if(argc != 2 && argc != 3 && argc != 4)
     {
