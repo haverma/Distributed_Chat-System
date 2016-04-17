@@ -116,6 +116,7 @@ void initiate_leader_election()
         
     printf("--------------------------- is_server = %d\n", is_server);
     printf("leader election finished.\n");
+    INTERRUPT_LEADER_ELECTION = false;
 }
 
 
