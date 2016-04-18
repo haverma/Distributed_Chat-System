@@ -5,9 +5,9 @@
 
 namespace ENCODER
 {
-    void encrypt(const char* message, const char* key, char** result)
+    void encrypt(const char* message, int messagelen, const char* key, char** result)
     {
-        int messagelen = strlen(message);
+        // int messagelen = strlen(message);
         int keylen = strlen(key);
         
         for (int i=0; i<messagelen+1; i++)
@@ -30,9 +30,9 @@ namespace ENCODER
             }
         }
     }
-     void decrypt(const char* message, const char* key, char** result)
+     void decrypt(const char* message, int messagelen, const char* key, char** result)
     {
-        int messagelen = strlen(message);
+        // int messagelen = strlen(message);
         int keylen = strlen(key);
         
         for (int i=0; i<messagelen+1; i++)

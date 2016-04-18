@@ -77,7 +77,7 @@ int process_rec_msg(char * acBuffer)
     int iLenToBeSent = 0;
     char acTempStr[100] = "\0";
 
-    printf("-----------------------is_server = %d\n", is_server);
+    // printf("-----------------------is_server = %d\n", is_server);
     
     switch(msg.msgType)
     {
