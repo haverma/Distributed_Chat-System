@@ -43,21 +43,6 @@
       <height>511</height>
      </rect>
     </property>
-    <item>
-     <property name="text">
-      <string>user1</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string>user2</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string>user3</string>
-     </property>
-    </item>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">
@@ -66,7 +51,7 @@
      <x>0</x>
      <y>0</y>
      <width>766</width>
-     <height>26</height>
+     <height>30</height>
     </rect>
    </property>
   </widget>

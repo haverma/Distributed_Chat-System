@@ -32,6 +32,29 @@ void MainWindow::updateText(QString str)
     ui->chatMessages->append(str);
 }
 
+void MainWindow::addUser(QString str)
+{
+    QListWidgetItem* itm = new QListWidgetItem();
+    itm->setText(str);
+    ui->usersList->addItem(itm);
+}
+
+void MainWindow::clearUsers()
+{
+    ui->usersList->clear();
+}
+
+void MainWindow::deleteUserEntry(const char* str)
+{
+    for( int i = 0; i < ui->usersList->count(); i++)
+    {
+        QListWidgetItem* item = ui->usersList->item(i);
+        printf("TEXT IS : %s\n", item->text().toStdString().c_str());
+        if ( strcmp( item->text().toStdString().c_str(), str) == 0 )
+            ui->usersList->removeItemWidget(item);
+    }
+}
+
 void MainWindow::on_messageBox_textChanged()
 {
     /*QString text = ui->messageBox->toPlainText();
@@ -65,7 +88,7 @@ void MainWindow::on_messageBox_textChanged()
         /* Fetch the user input */
 
         QString text = ui->messageBox->toPlainText();
-        printf("%s\n", text.toStdString().c_str());
+        //printf("%s\n", text.toStdString().c_str());
         if (text.endsWith("\n"))
         {
             text.truncate(text.length()-1);

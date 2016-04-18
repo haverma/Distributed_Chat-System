@@ -15,6 +15,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include "globals.h"
 
 void client_heartbeat();
 void flush_dead_clients(std::list<int> deadclients);
@@ -44,7 +45,6 @@ void client_heartbeat() {
                     perror("ERROR in sendto");
             }
 
-
             sleep(3);
         }
     }
@@ -73,6 +73,7 @@ void flush_dead_clients(std::list<int> deadclients) {
 
 
         }
+
         for (std::list<sockaddr_in *>::iterator iter1 = lpsClients.begin(); iter1 != lpsClients.end(); ++iter1) {
 
             if (ntohs((*iter1)->sin_port) == port) {
@@ -83,10 +84,9 @@ void flush_dead_clients(std::list<int> deadclients) {
                 }
                 iter1 = lpsClients.erase(iter1);
             }
-
-
         }
     }
+
 }
 
 #endif // __CLIENT_HEARTBEAT__

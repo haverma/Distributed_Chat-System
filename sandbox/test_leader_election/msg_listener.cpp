@@ -504,11 +504,17 @@ void display_client_list() {
     msg_struct * psServerInfo = lpsClientInfo.front();
     std::cout << psServerInfo->name + " " + psServerInfo->ipAddr + ":" + std::to_string(psServerInfo->port) + " (Leader)" << "\n";
 
+    // update interfce
+    w->clearUsers();
+
     //Displaying the clients information in a list
     //starting from the second element in the list
     for (std::list<msg_struct *>::iterator i = std::next(lpsClientInfo.begin()); i != lpsClientInfo.end(); ++i) {
         msg_struct * psClientInfo = *i;
         std::cout << psClientInfo->name + " " + psClientInfo->ipAddr + ":" + std::to_string(psClientInfo->port) << "\n";
+
+        // add username
+        w->addUser(psClientInfo->name.c_str());
     }
 }
 

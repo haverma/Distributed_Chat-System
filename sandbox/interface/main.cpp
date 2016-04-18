@@ -67,6 +67,7 @@ void interface(void)
     interfaceLoop(0, NULL);
 }
 
+
 int main(int argc, char ** argv) {
     char acBufferLocal[BUFF_SIZE];
     std::string token;
