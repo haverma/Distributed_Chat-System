@@ -11,7 +11,6 @@
 #include <arpa/inet.h>
 #include <sstream>
 #include <cstring>
-#include "leader_election.cpp"
 
 int process_rec_msg(char * acBuffer);
 void get_msg_from_bbm(int seqNum, char * name, char * data);
@@ -20,6 +19,7 @@ void display(msg_struct * msg);
 void update_client_list(msg_struct * msg);
 void display_client_list();
 void check_ack_sb();
+void flush_dead_clients(std::list<int> deadclients);
 
 bool is_client_already_present(std::string name)
 {
@@ -225,7 +225,6 @@ int process_rec_msg(char * acBuffer)
                 {
                     /* Fill msg struct with data to be sent */
                     //psMsg = (msg_struct *) malloc(sizeof(msg_struct));
-                    std::cout<<"Got a message from: " << msg.name << "\n";
                     psMsg = new msg_struct;//();
                     if(psMsg == NULL)
                     {
@@ -258,7 +257,7 @@ int process_rec_msg(char * acBuffer)
             }
 
         case MSG:
-            {   //std::cout<<"Got a message from the server" << msg.data << "Sequence Number: " << msg.seqNum << "\n";
+            {
                 if(msg.seqNum == iExpSeqNum)
                 {
                     /* Display msg and then display all other msgs from the hbm
@@ -287,7 +286,8 @@ int process_rec_msg(char * acBuffer)
                     holdbackMap.insert(std::pair<int, msg_struct *>(msg.seqNum, psMsg));
 
                     if(msg.seqNum >= iExpSeqNum + 2)
-                    {   for(int iterator = iExpSeqNum; iterator < msg.seqNum; iterator++)
+                    {
+                        for(int iterator = iExpSeqNum; iterator < msg.seqNum; iterator++)
                         {
                             memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
                             sprintf(&acBuffer[MSG_TYPE], "%d", (int)messageType::RETRIEVE_MSG);
@@ -303,15 +303,14 @@ int process_rec_msg(char * acBuffer)
                     else
                     {
                         iLenToBeSent = 0;
-                        
                     }
                 }
 
                 // XXX TESTING LEADER ELECTION XXX
-                if(strcmp(msg.data.c_str(), "election") == 0)
+               /* if(strcmp(msg.name.c_str(), "election") == 0)
                 {
                     initiate_leader_election();
-                }
+                }*/
 
                 /*
                 else
@@ -343,6 +342,7 @@ int process_rec_msg(char * acBuffer)
 
                     if (sentBufferMap.find(msg.msgId) != sentBufferMap.end())
                     {
+                        /* TODO: Delete the entry before erasing */
                         sentBufferMap.erase(msg.msgId);
                     }
                     else
@@ -408,6 +408,7 @@ int process_rec_msg(char * acBuffer)
                 break;
             }
 
+            /*
         case NEW_LEADER_ELECTED: // using SERVER_INFO
             {
                 if(!is_server)
@@ -444,26 +445,26 @@ int process_rec_msg(char * acBuffer)
                 break;
             
             }
+            */
+
         case CLIENT_HEARTBEAT:
             {
                 if(!is_server)
                 {
-                    
                     memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
                     sprintf(&acBuffer[MSG_TYPE], "%d", (int)messageType::CLIENT_HEARTBEAT);
                     sprintf(&acBuffer[DATA],"%d", iListeningPortNum);
                     sRecAddr = sServerAddr;
                     iLenToBeSent = BUFF_SIZE;
-
-                    
                 }
                 else
                 {
                     int iPortNo = atoi(&acBuffer[DATA]);
+                    heartbeatMutex.lock();
                     liCurrentClientPort.remove(iPortNo);
+                    heartbeatMutex.unlock();
                     iLenToBeSent = 0;
                 }
-                
                 break;
             }
         case CLIENT_EXITED:
@@ -471,42 +472,114 @@ int process_rec_msg(char * acBuffer)
                 if(is_server)
                 {
                     int port = atoi(msg.data.c_str());
-                    for (std::list<msg_struct *>::iterator iter = lpsClientInfo.begin(); iter != lpsClientInfo.end(); ++iter)
+                    std::list<int> liClientToBeRemoved(1, port);
+                    flush_dead_clients(liClientToBeRemoved);
+                    iLenToBeSent = 0;
+                }
+                break;
+            }
+
+        case SERVER_HEARTBEAT:
+            {
+                if(is_server)
+                {
+                    /* Send SERVER_HEARTBEAT back to the client. Note that sRecAddr's port should be
+                     * set to listening port of whoever sent the msg. Only
+                     * then, the response will reach the client */
+                    sRecAddr.sin_port = htons(atoi(&acBuffer[SENDER_LISTENING_PORT]));
+                    memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
+                    sprintf(&acBuffer[MSG_TYPE], "%d", (int)messageType::SERVER_HEARTBEAT);
+                    iLenToBeSent = BUFF_SIZE;
+                }
+                else
+                {
+                    heartbeatMutex.lock();
+                    is_server_alive = true;
+                    heartbeatMutex.unlock();
+                    iLenToBeSent = 0;
+                }
+                break;
+            }
+
+        case REQ_LEADER_ELECTION:
+            {
+                std::cout << "Recd REQ_LEADER_ELECTION msg\n";
+                //if(!is_server)
+                //{
+                    if(msg.senderPort < iListeningPortNum)
                     {
-                        msg_struct * psClientInfo = *iter; 
-                        if(psClientInfo->port == port)
-                        {
-                            msg_struct * psMsg = new msg_struct;//();
-                            if(psMsg == NULL)
-                            {
-                                fprintf(stderr, "Malloc failed. Please retry\n");
-                                break;
-                            }
-                            char acTempStr[100] = "\0";
-                            psMsg->msgType = messageType::NEW_CLIENT_INFO;
-                            sprintf(acTempStr, "NOTICE %s left the chat or crashed",(psClientInfo->name).c_str());
-                            psMsg->data = acTempStr;
-                            broadcastMutex.lock();
-                            qpsBroadcastq.push(psMsg);
-                            broadcastMutex.unlock();               
-                            iter = lpsClientInfo.erase(iter);
-               
-                        }
-
-
+                        sRecAddr.sin_port = htons(atoi(&acBuffer[SENDER_LISTENING_PORT]));
+                        memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
+                        sprintf(&acBuffer[MSG_TYPE], "%d", (int) messageType::STOP_LEADER_ELECTION);
+                        iLenToBeSent = BUFF_SIZE;
+                        break;
                     }
-                    for (std::list<sockaddr_in *>::iterator iter1 = lpsClients.begin(); iter1 != lpsClients.end(); ++iter1)
+                //}
+                iLenToBeSent = 0;
+                break;
+            }
+
+        case STOP_LEADER_ELECTION:
+            {
+                std::cout << "Recd STOP_LEADER_ELECTION msg\n";
+                if(!is_server)
+                {
+                    heartbeatMutex.lock();
+                    declare_leader = false;
+                    heartbeatMutex.unlock();
+                }
+                iLenToBeSent = 0;
+                break;
+            }
+
+        case NEW_LEADER_ELECTED:
+            {
+                std::cout << "Recd new leader elected msg, port:" << msg.senderPort << "\n";
+
+                /* Store server's information in the global sServerAddr struct */
+                sServerAddr.sin_family = AF_INET;
+                if(inet_pton(AF_INET, msg.data.c_str(), &sServerAddr.sin_addr) <= 0)
+                {
+                    fprintf(stderr, "Error while storing server IP address. Please retry\n");
+                    break;
+                }
+                sServerAddr.sin_port = htons(msg.senderPort);
+
+                /* Store server's information in the sServerInfo struct */
+                sServerInfo.name = msg.name;
+                sServerInfo.ipAddr = msg.data;
+                sServerInfo.port = msg.senderPort;
+
+                /* Delete the server's info from clients' list */
+                clientListMutex.lock();
+                for (std::list<msg_struct *>::iterator iterate = lpsClientInfo.begin(); iterate != lpsClientInfo.end(); ++iterate)
+                {
+                    if((*iterate)->name == sServerInfo.name && (*iterate)->port == sServerInfo.port)
                     {
-            
-                        if(ntohs((*iter1)->sin_port) == port)
-                        {
-                            iter1 = lpsClients.erase(iter1);
-        
-                        }            
+                        delete *iterate;
+                        lpsClientInfo.erase(iterate);
+                        break;
                     }
                 }
-        break;
-        }
+
+                for (std::list<sockaddr_in *>::iterator iterate = lpsClients.begin(); iterate != lpsClients.end(); ++iterate)
+                {
+                    if((*iterate)->sin_addr.s_addr == sServerAddr.sin_addr.s_addr &&
+                            (*iterate)->sin_port == sServerAddr.sin_port)
+                    {
+                        delete *iterate;
+                        lpsClients.erase(iterate);
+                        break;
+                    }
+                }
+                clientListMutex.unlock();
+
+                /* Reset the exp seq num */
+                iExpSeqNum = 0;
+
+                iLenToBeSent = 0;
+                break;
+            }
     }
     return iLenToBeSent;
 }
@@ -517,6 +590,7 @@ void get_msg_from_bbm( int seq_number, char * name, char * data)
     *name and data arrays of acbuffer*/
     std::map<int, msg_struct *>::iterator buffer_map_iterator;
 
+    broadcastbufferMutex.lock();
     buffer_map_iterator = broadcastBufferMap.find(seq_number);
     
     /*If found the corresponding sequence number as a
@@ -529,7 +603,7 @@ void get_msg_from_bbm( int seq_number, char * name, char * data)
         strcpy(name, temp->name.c_str());
         strcpy(data, temp->data.c_str());
     }
-
+    broadcastbufferMutex.unlock();
 }
 
 void display(msg_struct * message)
@@ -560,6 +634,11 @@ void check_hbm_and_display()
         {
             /*display the message*/
             display(hb_map_iterator->second);
+            if(hb_map_iterator->second != NULL)
+            {
+                delete hb_map_iterator->second;
+            }            
+            /* TODO: erase the entry from map */
             iExpSeqNum++;
         }
         else        //if the next sequence number is not in the holdback map
@@ -571,17 +650,14 @@ void check_hbm_and_display()
 }
 
 void update_client_list(msg_struct * psMessageStruct)
-{   
-    /*Clearing the Clients list*/
-    lpsClientInfo.clear();
-
-    std::string message;
-    //populating message from the structure data part
-    message = psMessageStruct->data;
+{
+    std::list<msg_struct *> lpsTempClientList;
+    std::string message = psMessageStruct->data;
 
     //Reading the message as a string stream 
     std::stringstream stringStream(message);
     std::string line;
+
 
     //Reading upto the new line
     while(std::getline(stringStream, line)) 
@@ -603,11 +679,6 @@ void update_client_list(msg_struct * psMessageStruct)
         }
         //Creating a new message structure pointer to hold one client
         msg_struct * psClientInfo = new msg_struct;//(); //(msg_struct *) malloc(sizeof(msg_struct));
-        if(psClientInfo == NULL)
-        {
-            fprintf(stderr, "Malloc failed. Please retry\n");
-            break;
-        }
 
         //populating the message struct from the tokens from strtok
         psClientInfo->name = tokens[0];
@@ -615,26 +686,31 @@ void update_client_list(msg_struct * psMessageStruct)
         psClientInfo->port = atoi(tokens[2]);
         
         /* Insert it into the client info list */
-        clientListMutex.lock();
-        lpsClientInfo.push_back(psClientInfo);
-        clientListMutex.unlock();
-  
+        lpsTempClientList.push_back(psClientInfo);
     }
 
-}
+    clientListMutex.lock();
+    for (std::list<msg_struct *>::iterator i = lpsClientInfo.begin(); i != lpsClientInfo.end(); ++i)
+        delete (*i);
 
+    lpsClientInfo.clear();
+
+    for (std::list<msg_struct *>::iterator iter = lpsTempClientList.begin(); iter != lpsTempClientList.end(); ++iter)
+        lpsClientInfo.push_back(*iter);
+    clientListMutex.unlock();
+}
 
 void display_client_list()
 {
-    //Getting the server info from the first element of the list
-    msg_struct * psServerInfo = lpsClientInfo.front();
-    std::cout<< psServerInfo->name + " " + psServerInfo->ipAddr + ":" + std::to_string(psServerInfo->port) + " (Leader)" << "\n";
+    /* Printing server's information */
+    std::cout<< sServerInfo.name + " " + sServerInfo.ipAddr + ":" + std::to_string(sServerInfo.port) + " (Leader)" << "\n";
 
-    //Displaying the clients information in a list
-    //starting from the second element in the list
-    for (std::list<msg_struct *>::iterator i = std::next(lpsClientInfo.begin()); i != lpsClientInfo.end(); ++i)
+    /* Displaying clients information in a list */
+    clientListMutex.lock();
+    for (std::list<msg_struct *>::iterator i = lpsClientInfo.begin(); i != lpsClientInfo.end(); ++i)
     {
         msg_struct * psClientInfo = *i; 
         std::cout<< psClientInfo->name + " " + psClientInfo->ipAddr + ":" + std::to_string(psClientInfo->port)  << "\n";
     }
+    clientListMutex.unlock();
 }

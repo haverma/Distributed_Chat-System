@@ -13,30 +13,27 @@
 
 typedef enum MessageType
 {
-    /* 0 to 11 */
+    /* 0 to 10 */
 
     CHAT,                       /* When server receives a msg to be broadcasts to other clients */
     MSG,                        /* When server broadcasts msg to all clients */
     ACK,                        /* When server wants to acknowledge receipt of CHAT from client */
     REQ_CONNECTION,             /* When a request for new connection is received */
     CONNECTION_ESTABLISHED,     /* When the client gets a response from server saying the connection is est. */
-    SERVER_ALIVE_CHECK,         /* When client sends a msg to check if server is alive */
-    SERVER_ALIVE_RESPONSE,      /* When server responds to client saying it is alive */
-    CLIENT_ALIVE_CHECK,         /* When server sends a msg to check if client is alive */
-    CLIENT_ALIVE_RESPONSE,      /* When client responds to server saying it is alive */
+    SERVER_HEARTBEAT,           /* When client sends a msg to check if server is alive */
     REQ_LEADER_ELECTION,        /* When a client requests leader election */
     STOP_LEADER_ELECTION,       /* When a higher client asks another to stop election */
     NEW_LEADER_ELECTED,         /* When a new leader is elected */
-
-    /* 12 to 18 */
-
-    MSG_NOT_FOUND,              /* When the message is not found in broadcast buffer*/
+    MSG_NOT_FOUND,              /* When the message is not found in broadcast buffer */
     SERVER_INFO,                /* When a cliennextt sends server info to incoming */
+
+    /* 11 to 15 */
+
     NEW_CLIENT_INFO,            /* When a new client is added to the chat system */
     CLIENT_LIST,                /* When server sends an updated client list to all clients */
     RETRIEVE_MSG,               /* When the client requests the server for a msg with particular seq num */
-    CLIENT_HEARTBEAT,            /* Heart beat message sent from server to all the clients*/
-    CLIENT_EXITED               /*Sent to the server when a client is exited*/
+    CLIENT_HEARTBEAT,           /* Heart beat message sent from server to all the clients */
+    CLIENT_EXITED               /* Sent to the server when a client is exited */
 
 } messageType;
 
@@ -79,7 +76,7 @@ typedef struct msg_struct
     int seqNum;                 /* Sequence number of the msg */
     int msgId;                  /* Message ID of the msg */
     std::string name;           /* Name of the client to which the msg belongs */
-    std::string ipAddr;         /* IP address onextf the client */
+    std::string ipAddr;         /* IP address of the client */
     int port;                   /* Corresponding port */
     int senderPort;             /* Listening port number of the sender */
     struct sockaddr_in * addr;  /* Contains the addr info of the sender */
@@ -97,7 +94,7 @@ extern int iListeningSocketFd, iSendingSocketFd, iListeningPortNum;
 
 extern std::string username;
 
-extern bool is_server;
+extern bool is_server, is_server_alive, declare_leader;
 
 
 extern std::queue<msg_struct *> qpsBroadcastq;         /* broadcast queue */
@@ -117,7 +114,7 @@ extern std::mutex broadcastMutex;
 extern std::mutex clientListMutex;
 extern std::mutex broadcastbufferMutex;
 extern std::mutex sentbufferMutex;
-extern std::mutex CurrentClientsListMutex;
+extern std::mutex heartbeatMutex;
 
 extern msg_struct sServerInfo;
 extern sockaddr_in sServerAddr;

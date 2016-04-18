@@ -17,67 +17,69 @@ void broadcast_message();
 bool trim_broadcast_message(std::map<int, msg_struct *> broadcastbuffer);
 std::string collect_clients_info();
 
-void broadcast_message(){
-
- 
-	   while(1)
-	   {
-	     if(is_server)
-   		 {
-	       char buf[BUFF_SIZE];
+void broadcast_message()
+{
+    while(1)
+	{
+        if(is_server)
+   		{
+            char buf[BUFF_SIZE];
+            int sockfd = socket(PF_INET, SOCK_DGRAM, 0);
 	   	    while(!qpsBroadcastq.empty())
-	   	    {	
-	   	    	//picking the first element in the broadcast queue
+	   	    {
+                //picking the first element in the broadcast queue
 	   	    	broadcastMutex.lock();
-	   	    	msg_struct* psMsgStruc = qpsBroadcastq.front();
+	   	    	msg_struct* psMsgStruct = qpsBroadcastq.front();
 	   	    	qpsBroadcastq.pop();
 	   	    	broadcastMutex.unlock();
 
 	   	    	broadcastbufferMutex.lock();
-	            //mlsBroadcastm.insert ( std::pair<long,msg_struct *>(psMsgStruc->seqNum, psMsgStruc) );
+	            //mlsBroadcastm.insert ( std::pair<long,msg_struct *>(psMsgStruct->seqNum, psMsgStruct) );
 	            if(broadcastBufferMap.size() == BBMAP_THRESHOLD)
 	            {
 	                trim_broadcast_message(broadcastBufferMap);
 	            }
-	            broadcastBufferMap[psMsgStruc->seqNum] = psMsgStruc;
+	            broadcastBufferMap[psMsgStruct->seqNum] = psMsgStruct;
 	            broadcastbufferMutex.unlock();
 	            std::string message;
 	            memset((char *)&buf, 0, sizeof(buf));
-	            if(psMsgStruc->msgType == CLIENT_LIST){
+	            if(psMsgStruct->msgType == CLIENT_LIST)
+                {
 	                message = collect_clients_info();
-	                sprintf(&buf[MSG_TYPE], "%d", psMsgStruc->msgType);
+	                sprintf(&buf[MSG_TYPE], "%d", psMsgStruct->msgType);
 	            	sprintf(&buf[DATA], "%s", message.c_str());
 	            }
-	            else if(psMsgStruc->msgType == NEW_CLIENT_INFO){
-	            	message = psMsgStruc->data;
-	                sprintf(&buf[MSG_TYPE], "%d", psMsgStruc->msgType);
+	            else if(psMsgStruct->msgType == NEW_CLIENT_INFO)
+                {
+	            	message = psMsgStruct->data;
+	                sprintf(&buf[MSG_TYPE], "%d", psMsgStruct->msgType);
 	            	sprintf(&buf[DATA], "%s", message.c_str());
 	            }
 	            else
 	            {
-	            	message = psMsgStruc->data;
-	            	sprintf(&buf[MSG_TYPE], "%d", psMsgStruc->msgType);
+	            	message = psMsgStruct->data;
+	            	sprintf(&buf[MSG_TYPE], "%d", psMsgStruct->msgType);
 	            	sprintf(&buf[DATA], "%s", message.c_str());
-		            sprintf(&buf[NAME], "%s", psMsgStruc->name.c_str());
-		            sprintf(&buf[SEQ_NUM], "%d", psMsgStruc->seqNum);
+		            sprintf(&buf[NAME], "%s", psMsgStruct->name.c_str());
+		            sprintf(&buf[SEQ_NUM], "%d", psMsgStruct->seqNum);
 	            }
-	            std::cout<<"lpsclients size: " << lpsClients.size();
-	            int sockfd = socket(PF_INET, SOCK_DGRAM, 0);
-	            int n = sendto(sockfd, buf, sizeof(buf), 0, (struct sockaddr *)&sServerAddr, sizeof(sServerAddr);
+	            int n = sendto(sockfd, buf, sizeof(buf), 0, (struct sockaddr *)&sServerAddr, sizeof(sServerAddr));
 	            if (n < 0) 
-	                perror("ERROR in sendto"); 
+	                fprintf(stdout, "Error while sending msg to server\n");
+
+                clientListMutex.lock();
 		        for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i) 
-		        {
-		        	std::cout<<" Broadcasting to the client: " << ntohs((*i)->sin_port) <<"\n"; 
-		        	
+		        {		        	
 		            n = sendto(sockfd, buf, sizeof(buf), 0, (struct sockaddr *)*i, sizeof(*(*i)));
 		            if (n < 0) 
-		                perror("ERROR in sendto"); 
+	                fprintf(stdout, "Error while sending msg to clients\n"); 
 		        }
-		    }
+                clientListMutex.unlock();
+            }
+            close(sockfd);
 		    //sleep(1);
-		}
-	    }
+        }
+    }
 }
 
 bool trim_broadcast_message(std::map<int, msg_struct *> broadcastbuffer)
@@ -93,15 +95,15 @@ bool trim_broadcast_message(std::map<int, msg_struct *> broadcastbuffer)
     // Deleting the element and freeing the pointer to struc
 	if(temp != NULL)
 	{
-		if(temp -> addr != NULL)
+		if(temp->addr != NULL)
 		{
 			//Freeing the address structure contained 
 			//by the addr structure
-			free(temp -> addr);
+			delete temp->addr;
 			temp -> addr = NULL;
 		}
 	}
-	free(temp);
+	delete temp;
 	temp = NULL;
     broadcastbuffer.erase(it);
     broadcastbufferMutex.unlock();

@@ -1,7 +1,3 @@
-#ifndef __LEADER_ELECTION__
-#define __LEADER_ELECTION__
-
-
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,111 +14,114 @@
 #include <unistd.h>
 #include <ctime>
 
-static bool ELECTION_IN_PROGRESS = true;
-extern bool is_server;
+void initiate_leader_election()
+{
+    struct sockaddr_in * psAddr;
+    int iSockFd = socket(AF_INET, SOCK_DGRAM, 0);
+    int iAddrLen = sizeof(sockaddr_in);
+    char acBuffer[BUFF_SIZE] = "";
+    bool bDeclareLeader;
+    msg_struct * psMsgStruct;
 
-void initiate_leader_election();
-void interrupt_leader_election();
+    sprintf(&acBuffer[MSG_TYPE], "%d", (int) messageType::REQ_LEADER_ELECTION);
+    sprintf(&acBuffer[SENDER_LISTENING_PORT], "%d", iListeningPortNum);
 
-void initiate_leader_election() {
-    printf("leader election in progress...\n");
-    if (true) //!is_server)
+    clientListMutex.lock();
+
+    heartbeatMutex.lock();
+    declare_leader = true;
+    heartbeatMutex.unlock();
+
+    for(std::list<msg_struct *>::iterator i = lpsClientInfo.begin(); i != lpsClientInfo.end(); ++i)
     {
-        // start timer
-        std::clock_t start;
-        double current = std::clock();
-        double interval = 1; //10 seconds
+        /* Ignore if the entry belongs to the current process */
+        if((*i)->name == username && (*i)->port == iListeningPortNum)
+            continue;
 
-        while (ELECTION_IN_PROGRESS) {
-            bool leader = false;
-            int highest = 0;
-            for (std::list<msg_struct *>::iterator i = lpsClientInfo.begin(); i != lpsClientInfo.end(); ++i)
-                //message = message + (*i)->name + ":" + (*i)->ipAddr + ":" + std::to_string((*i)->port) + "\n";
-            {
-                printf("PORT COMPARE TO : %d\n", (*i)->port);
-                if (highest <= (*i)->port && sMyInfo.port != (*i)->port)
-                    highest = (*i)->port;
-            }
+        /* Create sockaddr struct and add it to lpsClients */
+        psAddr = new sockaddr_in;
+        psAddr->sin_family = AF_INET;
+        if(inet_pton(AF_INET, ((*i)->ipAddr).c_str(), &(psAddr->sin_addr)) <= 0)
+        {
+            fprintf(stderr, "Error while storing the IP address. Please retry\n");
+            exit(1);
+        }
+        psAddr->sin_port = htons((*i)->port);
 
-            if (sMyInfo.port > highest)
-                leader = true;
-            else
-                leader = false;
+        lpsClients.push_back(psAddr);
+        
+        if((*i)->port > iListeningPortNum)
+        {
+            std::cout << "Sending REQ_LEADER_ELECTION\n";
 
-            if (ELECTION_IN_PROGRESS) {
-                printf("running logic \n");
-                // declare yourself server
-                if (leader)
-                    is_server = true;
-                else
-                    is_server = false;
-
-                printf("IS SERVER: %d\n", is_server);
-                // broadcast message to all
-
-                if (is_server) {
-                    // assemble client list to send to
-                    for (std::list<msg_struct *>::iterator i = lpsClientInfo.begin(); i != lpsClientInfo.end(); ++i) {
-                        // populating the message struct from the tokens from strtok
-                        
-                        
-                            sockaddr_in* psAddr = new sockaddr_in; //();
-                            if (psAddr == NULL) {
-                                fprintf(stderr, "Malloc failed. Please retry\n");
-                                break;
-                            }
-                            psAddr->sin_family = AF_INET;
-                            inet_pton(AF_INET, (*i)->ipAddr.c_str(), &(psAddr->sin_addr));
-                            psAddr->sin_port = htons((*i)->port);
-                            std::cout<<"Adding port: " << ntohs(psAddr->sin_port);
-                            /* Insert it into the two client lists */
-                            clientListMutex.lock();
-                            lpsClients.push_back(psAddr);
-                            clientListMutex.unlock();
-                        
-                    }
-
-                    for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i) {
-                        int port = ntohs(((*i))->sin_port);
-                        
-                        // use ip address to check that we don't self send
-                        if (sMyInfo.port != port) {
-                            //printf("current client port to send to : %d\n", port);
-                            // we have the highest port so we declare ourselves lader
-                            // and broadcast message to all
-                            char acBuffer[BUFF_SIZE];
-                            memset(acBuffer, 0x0, BUFF_SIZE * sizeof (char));
-
-                            // assemble NEW_LEADER_ELECTED message and send
-                            sprintf(&acBuffer[MSG_TYPE], "%d", (int) messageType::NEW_LEADER_ELECTED);
-                            strcpy(&acBuffer[DATA], sMyInfo.ipAddr.c_str());
-                            int iTempIndex = DATA + strlen(&acBuffer[DATA]) + 1;
-                            sprintf(&acBuffer[iTempIndex], "%d", sMyInfo.port);
-
-                            int sockfd = socket(PF_INET, SOCK_DGRAM, 0);
-                            int n = sendto(sockfd, acBuffer, sizeof (acBuffer), 0, (struct sockaddr *) *i, sizeof (*(*i)));
-                            if (n < 0)
-                                perror("ERROR in sendto");
-                        }
-                    }
-                    // now that we are the server we can break the loop
-                    break;
-                }
-            }
-            // if we waited longer that allocated time, quit
-            //if( std::clock() - current  > interval * 1000000)
-                break;
+            sendto(iSockFd, acBuffer, BUFF_SIZE * sizeof(char), 0,
+                    (struct sockaddr *) psAddr, iAddrLen);
         }
     }
-    // reset for next election
-    ELECTION_IN_PROGRESS = true;
+    clientListMutex.unlock();
 
-    printf("leader election finished.\n");
+    sleep(3);
+
+    heartbeatMutex.lock();
+    bDeclareLeader = declare_leader;
+    heartbeatMutex.unlock();
+
+    if(bDeclareLeader)
+    {
+        /* Remove its entry from the client info list */
+        clientListMutex.lock();
+        for (std::list<msg_struct *>::iterator iterate = lpsClientInfo.begin(); iterate != lpsClientInfo.end(); ++iterate)
+        {
+            if((*iterate)->name == username && (*iterate)->port == iListeningPortNum)
+            {
+                delete *iterate;
+                lpsClientInfo.erase(iterate);
+                break;
+            }
+        }
+        clientListMutex.unlock();
+
+        /* Set sServerAddr */
+        if(inet_pton(AF_INET, sMyInfo.ipAddr.c_str(), &sServerAddr.sin_addr) <= 0)
+        {
+            fprintf(stderr, "Error while storing the IP address. Please retry\n");
+            exit(1);
+        }
+        sServerAddr.sin_port = htons(iListeningPortNum);
+
+        /* Set sServerInfo */
+        sServerInfo.name = username;
+        sServerInfo.ipAddr = sMyInfo.ipAddr;
+        sServerInfo.port = iListeningPortNum;
+
+        /* Copy the contents of sentBuffer to broadcast queue */
+        sentbufferMutex.lock();
+        int iTempSeqNum = 0;
+        for(std::map<int ,msg_struct *>::iterator it = sentBufferMap.begin();
+                it != sentBufferMap.end(); ++it)
+        {
+            psMsgStruct = it->second;
+            psMsgStruct->seqNum = iTempSeqNum++;
+            qpsBroadcastq.push(psMsgStruct);
+        }
+        sentBufferMap.clear();
+        sentbufferMutex.unlock();
+
+        /* Set is_server to true and send NEW_LEADER_ELECTED to all clients */
+        memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
+        sprintf(&acBuffer[MSG_TYPE], "%d", (int) messageType::NEW_LEADER_ELECTED);
+        sprintf(&acBuffer[SENDER_LISTENING_PORT], "%d", sServerInfo.port);
+        strcpy(&acBuffer[DATA], sServerInfo.ipAddr.c_str());
+
+        std::cout << "Sending new leader elected msg\n";
+
+        clientListMutex.lock();
+        is_server = true;
+        iSeqNum = iMsgId = iExpSeqNum = 0;
+        for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i)
+        {
+            sendto(iSockFd, acBuffer, sizeof(acBuffer), 0, (struct sockaddr *) *i, sizeof(*(*i)));
+        }
+        clientListMutex.unlock();
+    }
 }
-
-void interrupt_leader_election() {
-    ELECTION_IN_PROGRESS = false;
-}
-
-
-#endif // __LEADER_ELECTION__
