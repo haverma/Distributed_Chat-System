@@ -66,7 +66,9 @@ void initiate_leader_election()
     bDeclareLeader = declare_leader;
     heartbeatMutex.unlock();
 
-    if(bDeclareLeader)
+    newLeaderElectedMutex.lock();
+    //std::cout << "leader_already_declared value = " << leader_already_declared << "\n";    
+    if(bDeclareLeader && !leader_already_declared)
     {
         /* Remove its entry from the client info list */
         clientListMutex.lock();
@@ -110,8 +112,9 @@ void initiate_leader_election()
         /* Set is_server to true and send NEW_LEADER_ELECTED to all clients */
         memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
         sprintf(&acBuffer[MSG_TYPE], "%d", (int) messageType::NEW_LEADER_ELECTED);
-        sprintf(&acBuffer[SENDER_LISTENING_PORT], "%d", sServerInfo.port);
+        strcpy(&acBuffer[NAME], username.c_str());
         strcpy(&acBuffer[DATA], sServerInfo.ipAddr.c_str());
+        sprintf(&acBuffer[SENDER_LISTENING_PORT], "%d", sServerInfo.port);
 
         std::cout << "Sending new leader elected msg\n";
 
@@ -124,4 +127,17 @@ void initiate_leader_election()
         }
         clientListMutex.unlock();
     }
+    else
+    {
+        /* Clear the lpsClients list in case it it not a server */
+        for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i)
+        {
+            if(*i != NULL)
+            {
+                delete *i;
+            }
+            i = lpsClients.erase(i);
+        }
+    }
+    newLeaderElectedMutex.unlock();
 }

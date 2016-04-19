@@ -18,7 +18,7 @@ int iRecAddrLen;
 int iListeningSocketFd, iSendingSocketFd;
 int iListeningPortNum = 0;
 std::string username;
-bool is_server, is_server_alive, declare_leader;
+bool is_server, is_server_alive, declare_leader, leader_already_declared;
 std::queue<msg_struct *> qpsBroadcastq;
 std::list<msg_struct *> lpsClientInfo;
 std::list<sockaddr_in *> lpsClients;
@@ -27,7 +27,7 @@ std::map<int, msg_struct *> sentBufferMap;
 std::map<int, msg_struct *> broadcastBufferMap;
 std::list<int> liCurrentClientPort; 
 int iSeqNum = 0, iExpSeqNum = 0;
-int iMsgId = 0;
+int iMsgId = 0, iResponseCount = 0;
 std::mutex seqNumMutex;
 std::mutex msgIdMutex;
 std::mutex broadcastMutex;
@@ -35,6 +35,7 @@ std::mutex clientListMutex;
 std::mutex broadcastbufferMutex;
 std::mutex sentbufferMutex;
 std::mutex heartbeatMutex;
+std::mutex newLeaderElectedMutex;
 msg_struct sServerInfo, sMyInfo;
 sockaddr_in sServerAddr;
 
@@ -156,6 +157,8 @@ int main(int argc, char ** argv)
     else
     {
         is_server = false;
+
+        leader_already_declared = true;
 
         /* Set username to what's being passed as an arg */
         username = argv[1];

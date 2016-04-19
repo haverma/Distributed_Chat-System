@@ -503,7 +503,6 @@ int process_rec_msg(char * acBuffer)
 
         case REQ_LEADER_ELECTION:
             {
-                std::cout << "Recd REQ_LEADER_ELECTION msg\n";
                 //if(!is_server)
                 //{
                     if(msg.senderPort < iListeningPortNum)
@@ -521,7 +520,6 @@ int process_rec_msg(char * acBuffer)
 
         case STOP_LEADER_ELECTION:
             {
-                std::cout << "Recd STOP_LEADER_ELECTION msg\n";
                 if(!is_server)
                 {
                     heartbeatMutex.lock();
@@ -534,6 +532,12 @@ int process_rec_msg(char * acBuffer)
 
         case NEW_LEADER_ELECTED:
             {
+                newLeaderElectedMutex.lock();
+                //std::cout << "setting leader_already_declared to true\n";                
+                leader_already_declared = true;
+                heartbeatMutex.lock();
+                iResponseCount = 0;
+                heartbeatMutex.unlock();
                 std::cout << "Recd new leader elected msg, port:" << msg.senderPort << "\n";
 
                 /* Store server's information in the global sServerAddr struct */
@@ -561,21 +565,11 @@ int process_rec_msg(char * acBuffer)
                         break;
                     }
                 }
-
-                for (std::list<sockaddr_in *>::iterator iterate = lpsClients.begin(); iterate != lpsClients.end(); ++iterate)
-                {
-                    if((*iterate)->sin_addr.s_addr == sServerAddr.sin_addr.s_addr &&
-                            (*iterate)->sin_port == sServerAddr.sin_port)
-                    {
-                        delete *iterate;
-                        lpsClients.erase(iterate);
-                        break;
-                    }
-                }
                 clientListMutex.unlock();
 
                 /* Reset the exp seq num */
                 iExpSeqNum = 0;
+                newLeaderElectedMutex.unlock();
 
                 iLenToBeSent = 0;
                 break;

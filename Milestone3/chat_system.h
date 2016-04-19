@@ -91,10 +91,11 @@ extern msg_struct sMyInfo;
 extern struct sockaddr_in sRecAddr;
 extern int iRecAddrLen;
 extern int iListeningSocketFd, iSendingSocketFd, iListeningPortNum;
+extern int iResponseCount;
 
 extern std::string username;
 
-extern bool is_server, is_server_alive, declare_leader;
+extern bool is_server, is_server_alive, declare_leader, leader_already_declared;
 
 
 extern std::queue<msg_struct *> qpsBroadcastq;         /* broadcast queue */
@@ -105,7 +106,7 @@ extern int iSeqNum, iExpSeqNum;                        /* server seq, expected f
 extern int iMsgId;                                     /* client'smsg id*/
 extern std::map<int, msg_struct *> broadcastBufferMap; /* server broadcast queue */
 extern std::map<int, msg_struct *> sentBufferMap;      /* send broadcasst msg */
-extern std::list<int> liCurrentClientPort;             /*Buffer for keeping an account of client heartbeat message*/
+extern std::list<int> liCurrentClientPort;             /* Buffer for keeping an account of client heartbeat message*/
 
 
 extern std::mutex seqNumMutex;
@@ -115,6 +116,7 @@ extern std::mutex clientListMutex;
 extern std::mutex broadcastbufferMutex;
 extern std::mutex sentbufferMutex;
 extern std::mutex heartbeatMutex;
+extern std::mutex newLeaderElectedMutex;                /* Mutex used to decide whether or not to declare itself as the leader */
 
 extern msg_struct sServerInfo;
 extern sockaddr_in sServerAddr;

@@ -23,7 +23,6 @@ void heartbeat()
     int n;
     int sockfd = socket(PF_INET, SOCK_DGRAM, 0);
     bool bListEmpty, bServerAlive;
-    int iResponseCount;
     while(1)
     {
         /* If server, check if clients are alive */
@@ -65,6 +64,7 @@ void heartbeat()
             heartbeatMutex.lock();
             is_server_alive = false;
             heartbeatMutex.unlock();
+            //std::cout << "server addr in heartbeat: " << ntohs(sServerAddr.sin_port) << "\n";
             n = sendto(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) &sServerAddr, sizeof(sServerAddr));
             if (n < 0)
             {
@@ -76,13 +76,20 @@ void heartbeat()
             heartbeatMutex.unlock();
             if(!bServerAlive)
             {
+                heartbeatMutex.lock();
                 if(0 == iResponseCount)
                 {
                     iResponseCount++;
+                    heartbeatMutex.unlock();
                 }
                 else
                 {
                     iResponseCount = 0;
+                    heartbeatMutex.unlock();
+                    newLeaderElectedMutex.lock();
+                    //std::cout << "setting leader_already_declared to false\n";
+                    leader_already_declared = false;
+                    newLeaderElectedMutex.unlock();
                     initiate_leader_election();
                     sleep(3);
                 }
