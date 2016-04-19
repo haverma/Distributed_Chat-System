@@ -14,6 +14,13 @@
 #include <unistd.h>
 #include <ctime>
 
+
+static bool deleteAll(sockaddr_in * element) 
+{ 
+    delete element; 
+    return true; 
+}
+
 void initiate_leader_election()
 {
     struct sockaddr_in * psAddr;
@@ -31,7 +38,10 @@ void initiate_leader_election()
     heartbeatMutex.lock();
     declare_leader = true;
     heartbeatMutex.unlock();
-
+    for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i)
+    {   std::cout << "Entry in lpsclients: " << ntohs((*i)->sin_port) << "\n";
+        //sendto(iSockFd, acBuffer, sizeof(acBuffer), 0, (struct sockaddr *) *i, sizeof(*(*i)));
+    }
     for(std::list<msg_struct *>::iterator i = lpsClientInfo.begin(); i != lpsClientInfo.end(); ++i)
     {
         /* Ignore if the entry belongs to the current process */
@@ -81,6 +91,10 @@ void initiate_leader_election()
                 break;
             }
         }
+        for (std::list<msg_struct *>::iterator iterate = lpsClientInfo.begin(); iterate != lpsClientInfo.end(); ++iterate)
+        {
+            std::cout<< "Client Info: "<< (*iterate)->port << "\n";
+        }
         clientListMutex.unlock();
 
         /* Set sServerAddr */
@@ -116,13 +130,13 @@ void initiate_leader_election()
         strcpy(&acBuffer[DATA], sServerInfo.ipAddr.c_str());
         sprintf(&acBuffer[SENDER_LISTENING_PORT], "%d", sServerInfo.port);
 
-        std::cout << "Sending new leader elected msg\n";
+        
 
         clientListMutex.lock();
         is_server = true;
         iSeqNum = iMsgId = iExpSeqNum = 0;
         for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i)
-        {
+        {   std::cout << "Sending new leader elected msg to" << ntohs((*i)->sin_port) << "\n";
             sendto(iSockFd, acBuffer, sizeof(acBuffer), 0, (struct sockaddr *) *i, sizeof(*(*i)));
         }
         clientListMutex.unlock();
@@ -130,13 +144,21 @@ void initiate_leader_election()
     else
     {
         /* Clear the lpsClients list in case it it not a server */
-        for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i)
+        /*for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i)
         {
             if(*i != NULL)
             {
                 delete *i;
             }
             i = lpsClients.erase(i);
+        }*/
+        lpsClients.remove_if(deleteAll);
+
+
+         for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i)
+        {   
+            std::cout << "Entry in lpsclients after deletion: " << ntohs((*i)->sin_port) << "\n";
+        //sendto(iSockFd, acBuffer, sizeof(acBuffer), 0, (struct sockaddr *) *i, sizeof(*(*i)));
         }
     }
     newLeaderElectedMutex.unlock();
