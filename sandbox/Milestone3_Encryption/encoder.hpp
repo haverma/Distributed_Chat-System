@@ -8,17 +8,18 @@
 
 namespace ENCODER
 {
-    void encrypt(const char* message, int messagelen, const char* key, char** result)
+    inline void encrypt(const char* message, int messagelen, const char* key, char** result)
     {
         // int messagelen = strlen(message);
         int keylen = strlen(key);
         
-        for (int i=0; i<messagelen+1; i++)
+        for (int i=0; i<messagelen; i++)
             (*result)[i] = '\0';
-         for (int i=0; i<messagelen; i++)
+        
+        for (int i=0; i<messagelen; i++)
         {
             (*result)[i] = message[i];
-             for (int j=0; j<keylen; j++)
+            for (int j=0; j<keylen; j++)
             {
                 if (j < keylen/2)
                 {
@@ -33,14 +34,16 @@ namespace ENCODER
             }
         }
     }
-     void decrypt(const char* message, int messagelen, const char* key, char** result)
+    
+    inline void decrypt(const char* message, int messagelen, const char* key, char** result)
     {
         // int messagelen = strlen(message);
         int keylen = strlen(key);
         
-        for (int i=0; i<messagelen+1; i++)
+        for (int i=0; i<messagelen; i++)
             (*result)[i] = '\0';
-         for (int i=0; i<messagelen; i++)
+            
+        for (int i=0; i<messagelen; i++)
         {
             (*result)[i] = message[i];
              for (int j=0; j<keylen; j++)
