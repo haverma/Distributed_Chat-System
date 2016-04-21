@@ -83,10 +83,8 @@ void user_listener()
             strcpy(&acBuffer[NAME], username.c_str());
             sprintf(&acBuffer[MSG_ID], "%d", iMsgId);
             sprintf(&acBuffer[SENDER_LISTENING_PORT], "%d", iListeningPortNum);
-            sendto(iSocketFd, acBuffer, BUFF_SIZE, 0,
-                    (struct sockaddr *) &sServerAddr, sizeof(sockaddr_in));
 
-            /* Add the message to sent buffer */
+             /* Add the message to sent buffer */
             psMsg = new msg_struct;
             psMsg->msgType = messageType::CHAT;
             psMsg->name = username;
@@ -94,20 +92,16 @@ void user_listener()
             psMsg->msgId = iMsgId;
             psMsg->timestamp = time(NULL);
             psMsg->attempts = 1;
+
             sentbufferMutex.lock();
-
-            /* Logging */
-            /*
-            std::cout << "During sending: Current msg ID sending: " << iMsgId << "\n\n";
-            for(auto it = sentBufferMap.cbegin(); it != sentBufferMap.cend(); ++it)
-            {
-                std::cout << it->first << " " << it->second << "\n";
-            }
-            */
-
             sentBufferMap[iMsgId] = psMsg;
-            sentbufferMutex.unlock();
             iMsgId++;
+            sentbufferMutex.unlock();
+            
+
+            sendto(iSocketFd, acBuffer, BUFF_SIZE, 0,
+                    (struct sockaddr *) &sServerAddr, sizeof(sockaddr_in));
+            
         }
 
     }

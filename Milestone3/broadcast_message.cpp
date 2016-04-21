@@ -33,14 +33,6 @@ void broadcast_message()
 	   	    	qpsBroadcastq.pop();
 	   	    	broadcastMutex.unlock();
 
-	   	    	broadcastbufferMutex.lock();
-	            //mlsBroadcastm.insert ( std::pair<long,msg_struct *>(psMsgStruct->seqNum, psMsgStruct) );
-	            if(broadcastBufferMap.size() == BBMAP_THRESHOLD)
-	            {
-	                trim_broadcast_message(broadcastBufferMap);
-	            }
-	            broadcastBufferMap[psMsgStruct->seqNum] = psMsgStruct;
-	            broadcastbufferMutex.unlock();
 	            std::string message;
 	            memset((char *)&buf, 0, sizeof(buf));
 	            if(psMsgStruct->msgType == CLIENT_LIST)
@@ -56,7 +48,14 @@ void broadcast_message()
 	            	sprintf(&buf[DATA], "%s", message.c_str());
 	            }
 	            else
-	            {
+	            {	broadcastbufferMutex.lock();
+	            	//mlsBroadcastm.insert ( std::pair<long,msg_struct *>(psMsgStruct->seqNum, psMsgStruct) );
+	            	if(broadcastBufferMap.size() == BBMAP_THRESHOLD)
+	            	{
+	                	trim_broadcast_message(broadcastBufferMap);
+	            	}
+	            	broadcastBufferMap[psMsgStruct->seqNum] = psMsgStruct;
+	            	broadcastbufferMutex.unlock();
 	            	message = psMsgStruct->data;
 	            	sprintf(&buf[MSG_TYPE], "%d", psMsgStruct->msgType);
 	            	sprintf(&buf[DATA], "%s", message.c_str());
@@ -86,26 +85,28 @@ bool trim_broadcast_message(std::map<int, msg_struct *> broadcastbuffer)
 {
 	std::map<int,msg_struct *>::iterator it;
 
-	//Taking the first element from the broadcast buffer
-    it = broadcastbuffer.begin();
-    broadcastbufferMutex.lock();
-    msg_struct* temp = it-> second;
-    
+	broadcastbufferMutex.lock();
+	for (it = broadcastbuffer.begin(); it != broadcastbuffer.end(); ++it) 
+    {
+	    
+	    msg_struct* temp = it-> second;
+	    
 
-    // Deleting the element and freeing the pointer to struc
-	if(temp != NULL)
-	{
-		if(temp->addr != NULL)
+	    // Deleting the element and freeing the pointer to struc
+		if(temp != NULL)
 		{
-			//Freeing the address structure contained 
-			//by the addr structure
-			delete temp->addr;
-			temp -> addr = NULL;
+			if(temp->addr != NULL)
+			{
+				//Freeing the address structure contained 
+				//by the addr structure
+				delete temp->addr;
+				temp -> addr = NULL;
+			}
 		}
+		delete temp;
+		temp = NULL;
 	}
-	delete temp;
-	temp = NULL;
-    broadcastbuffer.erase(it);
+    broadcastbuffer.clear();
     broadcastbufferMutex.unlock();
 
 	return true;

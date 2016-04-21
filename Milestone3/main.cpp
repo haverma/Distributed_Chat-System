@@ -42,7 +42,7 @@ sockaddr_in sServerAddr;
 void get_ip_address(char * ip);
 void user_listener();
 void msg_listener();
-void check_ack_sb();
+void check_ack_sb(int time_diff_sec);
 void broadcast_message();
 void heartbeat();
 

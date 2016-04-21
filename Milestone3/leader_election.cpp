@@ -60,8 +60,15 @@ void initiate_leader_election()
 
         lpsClients.push_back(psAddr);
         
-        if((*i)->port > iListeningPortNum)
+        if((*i)->port >= iListeningPortNum)
         {
+            if((*i)->port == iListeningPortNum)
+            {
+                if(strcmp((*i)->name.c_str(), username.c_str()) < 0)
+                {
+                    continue;
+                }
+            }
             std::cout << "Sending REQ_LEADER_ELECTION\n";
 
             sendto(iSockFd, acBuffer, BUFF_SIZE * sizeof(char), 0,

@@ -14,7 +14,7 @@
 #include <unistd.h>
 #include <time.h>  
 
-void check_ack_sb()
+void check_ack_sb(int time_diff_sec)
 {
     int sockfd = socket(PF_INET, SOCK_DGRAM, 0);
     double diff;
@@ -25,19 +25,16 @@ void check_ack_sb()
     {
         msg_struct* temp = it-> second;
         diff = time(NULL) - temp->timestamp;
-        if(diff>6 && temp->attempts >=2)
-        {
-            //TODO
-            printf("Initiate Leader election");
-            break;
-        }
-        else if(diff > 6 && temp->attempts < 2)
+        
+        if(diff > time_diff_sec)
         {
             std::string message = temp->data;
             sprintf(&buf[MSG_TYPE], "%d", temp->msgType);
             sprintf(&buf[DATA], "%s", message.c_str());
             sprintf(&buf[NAME], "%s", temp->name.c_str());
             sprintf(&buf[MSG_ID], "%d", temp->msgId);
+            sprintf(&buf[SENDER_LISTENING_PORT], "%d", iListeningPortNum);
+            
             int n = sendto(sockfd, buf, sizeof(buf), 0, (struct sockaddr *)&sServerAddr, sizeof(sServerAddr));
             if (n < 0) 
                 perror("ERROR in sendto");
