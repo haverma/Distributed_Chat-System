@@ -66,10 +66,11 @@ void interfaceLoop(int argc, char* argv[])
     // window title
     w->setWindowTitle(username.c_str());
     // stylesheet
-    w->setStyleSheet("QMainWindow { background-color: #222222 }"
+    w->setStyleSheet("QWidget { background-color: #222222 }"
+                     "QMainWindow { background-color: #222222 }"
                      "QPlainTextEdit { background-color: #222200 }"
                      "QPlainTextEdit { color: #88ffff }"
-                     "QListWidget { background-color: #252525 }"
+                     "QListWidget { background-color: #302828 }"
                      "QListWidget { color: #ff5555 }"
                      "QTextBrowser { background-color: #101515 }"
                      "QTextBrowser { color: #22ffff }"
