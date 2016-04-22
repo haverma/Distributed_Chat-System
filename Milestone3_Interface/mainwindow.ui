@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>766</width>
-    <height>581</height>
+    <width>750</width>
+    <height>600</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -16,18 +16,42 @@
     <verstretch>0</verstretch>
    </sizepolicy>
   </property>
+  <property name="minimumSize">
+   <size>
+    <width>750</width>
+    <height>600</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>750</width>
+    <height>600</height>
+   </size>
+  </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralWidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
    <widget class="QPlainTextEdit" name="messageBox">
     <property name="geometry">
      <rect>
-      <x>200</x>
+      <x>10</x>
       <y>470</y>
-      <width>541</width>
-      <height>51</height>
+      <width>731</width>
+      <height>71</height>
      </rect>
+    </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
     </property>
    </widget>
    <widget class="QTextBrowser" name="chatMessages">
@@ -39,6 +63,18 @@
       <height>451</height>
      </rect>
     </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>541</width>
+      <height>16777215</height>
+     </size>
+    </property>
    </widget>
    <widget class="QListWidget" name="usersList">
     <property name="geometry">
@@ -46,8 +82,14 @@
       <x>10</x>
       <y>10</y>
       <width>181</width>
-      <height>511</height>
+      <height>451</height>
      </rect>
+    </property>
+    <property name="editTriggers">
+     <set>QAbstractItemView::NoEditTriggers</set>
+    </property>
+    <property name="showDropIndicator" stdset="0">
+     <bool>false</bool>
     </property>
    </widget>
   </widget>
@@ -56,8 +98,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>766</width>
-     <height>30</height>
+     <width>750</width>
+     <height>26</height>
     </rect>
    </property>
   </widget>

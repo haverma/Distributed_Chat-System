@@ -14,6 +14,8 @@
 #include <unistd.h>
 #include <time.h>  
 
+#include "globals.h"
+
 void check_ack_sb(int time_diff_sec)
 {
     int sockfd = socket(PF_INET, SOCK_DGRAM, 0);

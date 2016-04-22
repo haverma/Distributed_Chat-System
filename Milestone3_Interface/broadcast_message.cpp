@@ -13,6 +13,8 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
+//#include "globals.h"
+
 void broadcast_message();
 bool trim_broadcast_message(std::map<int, msg_struct *> broadcastbuffer);
 std::string collect_clients_info();
@@ -21,6 +23,8 @@ void broadcast_message()
 {
     while(1)
 	{
+        usleep(300);
+
         if(is_server)
    		{
             char buf[BUFF_SIZE];

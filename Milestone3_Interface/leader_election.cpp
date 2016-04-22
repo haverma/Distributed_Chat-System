@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <ctime>
 
+//#include "globals.h"
 
 static bool deleteAll(sockaddr_in * element) 
 { 
@@ -160,7 +161,6 @@ void initiate_leader_election()
             i = lpsClients.erase(i);
         }*/
         lpsClients.remove_if(deleteAll);
-
 
          for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i)
         {   

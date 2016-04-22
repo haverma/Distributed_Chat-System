@@ -80,6 +80,8 @@ int process_rec_msg(char * acBuffer)
     {
         case REQ_CONNECTION:
             {
+        printf ("received message\n");
+        printf ("++++++++++++++++++++++++ is server = %d\n", is_server);
                 if(is_server)
                 {
                     if(!is_client_already_present(msg.name))
@@ -604,16 +606,19 @@ void display(msg_struct * message)
     if(message->msgType == messageType::MSG)
     {
         std::cout << message->name + ": " + message->data << "\n";
-        std::string tmp_str = message->name;
+        std::string tmp_str = "";
+        tmp_str+= message->name;
         tmp_str+= ": ";
         tmp_str+= message->data;
         tmp_str+= "\n";
+        printf("message = %s\n", tmp_str.c_str());
         w->updateText(tmp_str.c_str());
     }
     else if(message->msgType == messageType::NEW_CLIENT_INFO) //if the message is a new client notification
     {
         std::cout << message->data << "\n";
         w->updateText(message->data.c_str());
+        printf("message = %s\n", message->data.c_str());
 
     }
 }
@@ -705,8 +710,9 @@ void display_client_list()
     std::cout<< sServerInfo.name + " " + sServerInfo.ipAddr + ":" + std::to_string(sServerInfo.port) + " (Leader)" << "\n";
 
     // update interfce
-    //w->clearUsers();
-
+    w->clearUsers();
+    // add server name
+    w->addUser(sServerInfo.name.c_str());
     /* Displaying clients information in a list */
     clientListMutex.lock();
     for (std::list<msg_struct *>::iterator i = lpsClientInfo.begin(); i != lpsClientInfo.end(); ++i)
@@ -715,7 +721,7 @@ void display_client_list()
         std::cout<< psClientInfo->name + " " + psClientInfo->ipAddr + ":" + std::to_string(psClientInfo->port)  << "\n";
 
         // add username
-        //w->addUser(psClientInfo->name.c_str());
+        w->addUser(psClientInfo->name.c_str());
     }
     clientListMutex.unlock();
 }

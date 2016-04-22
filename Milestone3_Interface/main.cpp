@@ -45,7 +45,7 @@ std::mutex newLeaderElectedMutex;
 msg_struct sServerInfo, sMyInfo;
 sockaddr_in sServerAddr;
 
-#include "globals.h""
+//#include "globals.h"
 MainWindow* w;
 
 void get_ip_address(char * ip);
@@ -64,11 +64,40 @@ void interfaceLoop(int argc, char* argv[])
     w = new MainWindow(NULL);
     // window title
     w->setWindowTitle(username.c_str());
-
     w->show();
 
     a.exec();
     delete w;
+
+    // send closing signal
+    char acBuffer[BUFF_SIZE] = "";
+    int iTemp = 0;
+    msg_struct * psMsg = NULL;
+    int iSocketFd;
+
+    iSocketFd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (iSocketFd < 0)
+    {
+        fprintf(stderr, "Error while opening socket\n");
+        exit(1);
+    }
+
+    if(!is_server)
+    {
+        // Store CHAT msg into acBuffer and send it to the server
+        sprintf(&acBuffer[MSG_TYPE], "%d", (int) messageType::CLIENT_EXITED);
+        sprintf(&acBuffer[DATA], "%d", iListeningPortNum);
+        sendto(iSocketFd, acBuffer, BUFF_SIZE, 0,
+        (struct sockaddr *) &sServerAddr, sizeof(sockaddr_in));
+        exit(1);
+    }
+    else
+    {
+        std::cout<<"Exiting the chat application... Server Closing.. !!"<<"\n";
+        exit(1);
+    }
+    // done sending close signal
 
     //kill(parent, SIGEV_THREAD_ID);
     std::terminate();
@@ -174,18 +203,18 @@ int main(int argc, char ** argv)
         username = argv[1];
 
         /* Start all the threads */
-        std::thread user_listener_thread(user_listener);
+        std::thread interface_thread(interface); sleep(2);
+        //std::thread user_listener_thread(user_listener);
         std::thread msg_listener_thread(msg_listener);
         std::thread broadcast_message_thread(broadcast_message);
         std::thread heartbeat_thread(heartbeat);
-        std::thread interface_thread(interface);
 
         /* Wait for threads to join */
-        user_listener_thread.join();
+        interface_thread.join();
+        //user_listener_thread.join();
         msg_listener_thread.join();
         broadcast_message_thread.join();
         heartbeat_thread.join();
-        interface_thread.join();
 
 
     }
@@ -246,17 +275,17 @@ int main(int argc, char ** argv)
         sServerAddr = sConnectingAddr;
 
         /* Start all the threads */
-        std::thread user_listener_thread(user_listener);
+        std::thread interface_thread(interface); sleep(2);
+        //std::thread user_listener_thread(user_listener);
         std::thread msg_listener_thread(msg_listener);
         std::thread broadcast_message_thread(broadcast_message);
         std::thread heartbeat_thread(heartbeat);
-        std::thread interface_thread(interface);
-        
-        user_listener_thread.join();
+
+        interface_thread.join();
+        //user_listener_thread.join();
         msg_listener_thread.join();
         broadcast_message_thread.join();
         heartbeat_thread.join();
-        interface_thread.join();
 
     }
     return 0;

@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <map>
 #include <queue>
-#include "../test_leader_election/chat_system.h"
+#include "chat_system.h"
 #include <string.h>
 #include <string>
 #include <sys/socket.h>
@@ -15,8 +15,6 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include <unistd.h>
-
-
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -32,17 +30,10 @@ MainWindow::~MainWindow()
 
 void MainWindow::updateText(QString str)
 {
-    printf("1\n");
-    printf ("str = %s\n", str.toStdString().c_str());
-    sleep(10);
     ui->chatMessages->append(str);
-    printf("2\n");
     QScrollBar *sb = ui->chatMessages->verticalScrollBar();
-    printf("3\n");
     sb->setValue(sb->maximum());
-    printf("4\n");
     ui->chatMessages->update();
-    printf("5\n");
 }
 
 void MainWindow::addUser(QString str)
@@ -81,6 +72,8 @@ void MainWindow::on_messageBox_textChanged()
         ui->messageBox->clear();
     }*/
 
+
+    std::cout << "is server = " << is_server << std::endl;
 
     char acBuffer[BUFF_SIZE] = "";
     int iTemp = 0;
