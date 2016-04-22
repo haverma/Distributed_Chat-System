@@ -126,3 +126,4 @@ std::string collect_clients_info()
 	}
 	return message;
 }
+

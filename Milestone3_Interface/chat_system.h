@@ -122,3 +122,4 @@ extern msg_struct sServerInfo;
 extern sockaddr_in sServerAddr;
 
 #endif
+

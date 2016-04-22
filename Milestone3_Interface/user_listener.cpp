@@ -108,6 +108,5 @@ void user_listener()
                     (struct sockaddr *) &sServerAddr, sizeof(sockaddr_in));
             
         }
-
     }
 }

@@ -170,3 +170,4 @@ void initiate_leader_election()
     }
     newLeaderElectedMutex.unlock();
 }
+

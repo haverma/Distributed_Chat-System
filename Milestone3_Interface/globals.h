@@ -7,5 +7,5 @@
 //extern char INTERFACE_MESSAGE[1024];
 extern MainWindow* w;
 
-
 #endif // GLOBALS_H
+

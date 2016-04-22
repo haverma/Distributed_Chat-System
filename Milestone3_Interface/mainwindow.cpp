@@ -161,3 +161,4 @@ void MainWindow::on_messageBox_textChanged()
     QScrollBar *sb = ui->chatMessages->verticalScrollBar();
     sb->setValue(sb->maximum());
 }
+
