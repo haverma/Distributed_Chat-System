@@ -48,6 +48,20 @@ void MainWindow::clearUsers()
     ui->usersList->clear();
 }
 
+void MainWindow::updateServerLabel(bool status)
+{
+    if (status)
+    {
+        ui->serverLabel->setText("Server");
+        ui->serverLabel->setStyleSheet("color: #ff0000");
+    }
+    else
+    {
+        ui->serverLabel->setText("Client");
+        ui->serverLabel->setStyleSheet("color: #00ff00");
+    }
+}
+
 void MainWindow::deleteUserEntry(const char* str)
 {
     for( int i = 0; i < ui->usersList->count(); i++)

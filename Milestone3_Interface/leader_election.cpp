@@ -14,7 +14,7 @@
 #include <unistd.h>
 #include <ctime>
 
-//#include "globals.h"
+#include "globals.h"
 
 static bool deleteAll(sockaddr_in * element) 
 { 
@@ -142,6 +142,7 @@ void initiate_leader_election()
 
         clientListMutex.lock();
         is_server = true;
+        w->updateServerLabel(is_server);
         iSeqNum = iMsgId = iExpSeqNum = 0;
         for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i)
         {   std::cout << "Sending new leader elected msg to" << ntohs((*i)->sin_port) << "\n";

@@ -18,6 +18,7 @@ public:
     void addUser(QString str);
     void clearUsers();
     void deleteUserEntry(const char* str);
+    void updateServerLabel(bool status);
 private slots:
     void on_messageBox_textChanged();
 

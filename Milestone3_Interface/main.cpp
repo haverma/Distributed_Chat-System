@@ -62,8 +62,25 @@ void interfaceLoop(int argc, char* argv[])
     //printf("PID = %d\n", parent );
     QApplication a(argc, argv);
     w = new MainWindow(NULL);
+
     // window title
     w->setWindowTitle(username.c_str());
+    // stylesheet
+    w->setStyleSheet("QMainWindow { background-color: #222222 }"
+                     "QPlainTextEdit { background-color: #222200 }"
+                     "QPlainTextEdit { color: #88ffff }"
+                     "QListWidget { background-color: #252525 }"
+                     "QListWidget { color: #ff5555 }"
+                     "QTextBrowser { background-color: #101515 }"
+                     "QTextBrowser { color: #22ffff }"
+                     "QLabel { color: #ffffff }");
+
+    w->updateServerLabel(is_server);
+/*
+    "background-color: #113333;"
+    "selection-color: #113333;"
+    "selection-background-color: blue;"
+*/
     w->show();
 
     a.exec();
