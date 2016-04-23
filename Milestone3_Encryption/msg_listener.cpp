@@ -13,6 +13,8 @@
 #include <cstring>
 #include "encoder.hpp"
 
+extern bool disable_decription;
+
 int process_rec_msg(char * acBuffer);
 void get_msg_from_bbm(int seqNum, char * name, char * data);
 void check_hbm_and_display();
@@ -609,7 +611,11 @@ void display(msg_struct * message)
         //printf("SIZE = %d\n", BUFF_SIZE-DATA);
         char* encryption = new char[BUFF_SIZE-DATA];
         ENCODER::decrypt(message->data.c_str(), BUFF_SIZE-DATA, "TEAM BLOOPERS ROCKS YOUR SOCK TO THE MOON AND BACK!", &encryption);
-        std::cout << message->name + ": " + encryption << "\t::---> decrypted from: " << message->data.c_str() << std::endl;
+        
+        if(disable_decription)
+            std::cout << message->name + ": " + message->data.c_str() << std::endl;
+        else
+            std::cout << message->name + ": " + encryption /*<< "\t::---> decrypted from: " << message->data.c_str()*/ << std::endl;
         delete [] encryption;
         
         //std::cout << message->name + ": " + message->data << "\n";

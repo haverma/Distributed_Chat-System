@@ -38,6 +38,7 @@ std::mutex heartbeatMutex;
 std::mutex newLeaderElectedMutex;
 msg_struct sServerInfo, sMyInfo;
 sockaddr_in sServerAddr;
+bool disable_decription = false;
 
 void get_ip_address(char * ip);
 void user_listener();
@@ -57,12 +58,18 @@ int main(int argc, char ** argv)
     struct sockaddr_in temp;
     int addrlen = sizeof(temp);
 
-    if(argc != 2 && argc != 3)
+    
+    for (int i= 0; i < argc; i++)
+    {
+        if (strcmp(argv[i], "-d") == 0)
+            disable_decription = true;
+    }
+    
+    if(argc != 2+disable_decription && argc != 3+disable_decription )
     {
         fprintf(stderr,"Incorrect number of arguments supplied. Please retry\n");
         exit(1);
     }
-
 
     iRecAddrLen = sizeof(sRecAddr);
 
@@ -118,7 +125,7 @@ int main(int argc, char ** argv)
     }
 
     /* If initiating a new chat */
-    if(2 == argc)
+    if(2+disable_decription == argc)
     {
         is_server = true;
 
