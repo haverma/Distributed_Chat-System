@@ -92,7 +92,7 @@ void user_listener()
             sentBufferMap[iMsgId] = psMsg;
             iMsgId++;
             sentbufferMutex.unlock();
-            std::cout << "Msg ID sent to old server: " << iMsgId << "\n";
+            //std::cout << "Msg ID sent to old server: " << iMsgId << "\n";
             sendto(iSocketFd, acBuffer, BUFF_SIZE, 0,
                     (struct sockaddr *) &sServerMsgAddr, sizeof(sockaddr_in));
         }

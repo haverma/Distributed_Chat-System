@@ -171,7 +171,7 @@ void initiate_leader_election()
         clientListMutex.lock();
         is_server = true;
         seqNumMutex.lock();
-        iSeqNum = 0;
+        iSeqNum = iTempSeqNum;
         seqNumMutex.unlock();
         iMsgId = 0;
         iExpSeqNum = 0;

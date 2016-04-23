@@ -83,7 +83,7 @@ int process_rec_msg(char * acBuffer)
         //std::cout << "MessageType: " << msg.msgType << ", Name: " << msg.name << ", data: " << msg.data << "\n";
         case CHAT:
             {
-                //std::cout << "Received CHAT:" << msg.data << " " << msg.senderPort << "\n";
+                //std::cout << "Received CHAT:" << msg.msgId << " " << msg.senderPort << "\n";
                 if(is_server)
                 {
                     /* Fill msg struct with data to be sent */
@@ -116,7 +116,7 @@ int process_rec_msg(char * acBuffer)
 
         case MSG:
             {
-                //std::cout << "recd msg\n";
+                std::cout << "recd MSG: DATA: " << msg.data << " Name: " << msg.name << " Seq num: " << msg.seqNum << "\n";
                 expSeqNumMutex.lock();
                 if(msg.seqNum == iExpSeqNum)
                 {
@@ -197,7 +197,6 @@ int process_rec_msg(char * acBuffer)
             {
                 if(is_server)
                 {
-                    std::cout << "Recd RETRIEVE_MSG\n";
                     /* Retrieve msg from the broadcast buffer and send that
                      * msg back to the client. Note that sRecMsgAddr's port should be
                      * set to listening port of whoever sent the msg. Only
