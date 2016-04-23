@@ -25,7 +25,7 @@ typedef enum MessageType
     STOP_LEADER_ELECTION,       /* When a higher client asks another to stop election */
     NEW_LEADER_ELECTED,         /* When a new leader is elected */
     MSG_NOT_FOUND,              /* When the message is not found in broadcast buffer */
-    SERVER_INFO,                /* When a cliennextt sends server info to incoming */
+    SERVER_INFO,                /* When a client sends server info to incoming */
 
     /* 11 to 15 */
 
@@ -77,7 +77,8 @@ typedef struct msg_struct
     int msgId;                  /* Message ID of the msg */
     std::string name;           /* Name of the client to which the msg belongs */
     std::string ipAddr;         /* IP address of the client */
-    int port;                   /* Corresponding port */
+    int port;                   /* Corresponding port for listening to spl msgs */
+    int msgPort;                /* Port for listening to incoming chat msgs */
     int senderPort;             /* Listening port number of the sender */
     struct sockaddr_in * addr;  /* Contains the addr info of the sender */
     std::string data;           /* Data present in the payload */
@@ -86,11 +87,12 @@ typedef struct msg_struct
 
 } msg_struct;
 
-extern struct sockaddr_in sListeningAddr;
+extern struct sockaddr_in sListeningAddr, sMsgListeningAddr;
 extern msg_struct sMyInfo;
-extern struct sockaddr_in sRecAddr;
-extern int iRecAddrLen;
+extern struct sockaddr_in sRecAddr, sRecMsgAddr;
+extern int iRecAddrLen, iRecMsgAddrLen;
 extern int iListeningSocketFd, iSendingSocketFd, iListeningPortNum;
+extern int iMsgListeningSocketFd, iMsgSendingSocketFd, iMsgListeningPortNum;
 extern int iResponseCount;
 
 extern std::string username;
@@ -99,26 +101,31 @@ extern bool is_server, is_server_alive, declare_leader, leader_already_declared;
 
 
 extern std::queue<msg_struct *> qpsBroadcastq;         /* broadcast queue */
+extern std::queue<msg_struct *> qpsMsgBroadcastq;      /* Broadcast queue for msgs */
 extern std::list<sockaddr_in *> lpsClients;            /* client sockaddr */
+extern std::list<sockaddr_in *> lpsClientsMsg;         /* client sockaddr for msg sending */
 extern std::list<msg_struct *> lpsClientInfo;          /* client str */
 extern std::map<int, msg_struct *> holdbackMap;        /* holdmap as seqnum, msgsruct */
 extern int iSeqNum, iExpSeqNum;                        /* server seq, expected from client */
-extern int iMsgId;                                     /* client'smsg id*/
+extern int iMsgId;                                     /* client's msg id*/
 extern std::map<int, msg_struct *> broadcastBufferMap; /* server broadcast queue */
 extern std::map<int, msg_struct *> sentBufferMap;      /* send broadcasst msg */
 extern std::list<int> liCurrentClientPort;             /* Buffer for keeping an account of client heartbeat message*/
 
 
 extern std::mutex seqNumMutex;
+extern std::mutex expSeqNumMutex;
 extern std::mutex msgIdMutex;
 extern std::mutex broadcastMutex;
+extern std::mutex msgBroadcastMutex;
 extern std::mutex clientListMutex;
 extern std::mutex broadcastbufferMutex;
 extern std::mutex sentbufferMutex;
 extern std::mutex heartbeatMutex;
 extern std::mutex newLeaderElectedMutex;                /* Mutex used to decide whether or not to declare itself as the leader */
+extern std::mutex displayMutex;
 
 extern msg_struct sServerInfo;
-extern sockaddr_in sServerAddr;
+extern sockaddr_in sServerAddr, sServerMsgAddr;
 
 #endif

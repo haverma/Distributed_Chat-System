@@ -44,7 +44,7 @@ void user_listener()
             }
             else
             {
-                std::cout<<"Exiting the chat application... Server Closing.. !!"<<"\n";
+                std::cout<<"Exiting the chat application... Server Closing...!!"<<"\n";
                 exit(1);
             }
                 
@@ -58,13 +58,8 @@ void user_listener()
         {
             /* Create msg by filling the received msg into a struct and push
              * it to the broadcast queue */
-            //psMsg = (msg_struct *) malloc(sizeof(msg_struct));
-            psMsg = new msg_struct;//();
-            if(psMsg == NULL)
-            {
-                fprintf(stderr, "Malloc failed. Please retry\n");
-                continue;
-            }
+
+            psMsg = new msg_struct;
             psMsg->msgType = messageType::MSG;
             seqNumMutex.lock();
             psMsg->seqNum = iSeqNum;
@@ -72,9 +67,9 @@ void user_listener()
             seqNumMutex.unlock();
             psMsg->name = username;
             psMsg->data = &acBuffer[DATA];
-            broadcastMutex.lock();
-            qpsBroadcastq.push(psMsg);
-            broadcastMutex.unlock();
+            msgBroadcastMutex.lock();
+            qpsMsgBroadcastq.push(psMsg);
+            msgBroadcastMutex.unlock();
         }
         else
         {
@@ -82,7 +77,7 @@ void user_listener()
             sprintf(&acBuffer[MSG_TYPE], "%d", (int) messageType::CHAT);
             strcpy(&acBuffer[NAME], username.c_str());
             sprintf(&acBuffer[MSG_ID], "%d", iMsgId);
-            sprintf(&acBuffer[SENDER_LISTENING_PORT], "%d", iListeningPortNum);
+            sprintf(&acBuffer[SENDER_LISTENING_PORT], "%d", iMsgListeningPortNum);
 
              /* Add the message to sent buffer */
             psMsg = new msg_struct;
@@ -97,12 +92,9 @@ void user_listener()
             sentBufferMap[iMsgId] = psMsg;
             iMsgId++;
             sentbufferMutex.unlock();
-            
-
+            std::cout << "Msg ID sent to old server: " << iMsgId << "\n";
             sendto(iSocketFd, acBuffer, BUFF_SIZE, 0,
-                    (struct sockaddr *) &sServerAddr, sizeof(sockaddr_in));
-            
+                    (struct sockaddr *) &sServerMsgAddr, sizeof(sockaddr_in));
         }
-
     }
 }

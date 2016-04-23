@@ -12,16 +12,19 @@
 #include <ifaddrs.h>
 #include <thread>
 
-struct sockaddr_in sListeningAddr;
-struct sockaddr_in sRecAddr;
-int iRecAddrLen;
+struct sockaddr_in sListeningAddr, sMsgListeningAddr;
+struct sockaddr_in sRecAddr, sRecMsgAddr;
+int iRecAddrLen, iRecMsgAddrLen;
 int iListeningSocketFd, iSendingSocketFd;
-int iListeningPortNum = 0;
+int iMsgListeningSocketFd, iMsgSendingSocketFd;
+int iListeningPortNum = 0, iMsgListeningPortNum = 0;
 std::string username;
 bool is_server, is_server_alive, declare_leader, leader_already_declared;
 std::queue<msg_struct *> qpsBroadcastq;
+std::queue<msg_struct *> qpsMsgBroadcastq;
 std::list<msg_struct *> lpsClientInfo;
 std::list<sockaddr_in *> lpsClients;
+std::list<sockaddr_in *> lpsClientsMsg;
 std::map<int, msg_struct *> holdbackMap;
 std::map<int, msg_struct *> sentBufferMap;
 std::map<int, msg_struct *> broadcastBufferMap;
@@ -29,15 +32,18 @@ std::list<int> liCurrentClientPort;
 int iSeqNum = 0, iExpSeqNum = 0;
 int iMsgId = 0, iResponseCount = 0;
 std::mutex seqNumMutex;
+std::mutex expSeqNumMutex;
 std::mutex msgIdMutex;
 std::mutex broadcastMutex;
+std::mutex msgBroadcastMutex;
 std::mutex clientListMutex;
 std::mutex broadcastbufferMutex;
 std::mutex sentbufferMutex;
 std::mutex heartbeatMutex;
 std::mutex newLeaderElectedMutex;
+std::mutex displayMutex;
 msg_struct sServerInfo, sMyInfo;
-sockaddr_in sServerAddr;
+sockaddr_in sServerAddr, sServerMsgAddr;
 
 void get_ip_address(char * ip);
 void user_listener();
@@ -45,6 +51,7 @@ void msg_listener();
 void check_ack_sb(int time_diff_sec);
 void broadcast_message();
 void heartbeat();
+void spl_msg_listener();
 
 int main(int argc, char ** argv)
 {
@@ -65,6 +72,7 @@ int main(int argc, char ** argv)
 
 
     iRecAddrLen = sizeof(sRecAddr);
+    iRecMsgAddrLen = sizeof(sRecMsgAddr);
 
     /* Establishing listener socket */
 
@@ -101,10 +109,43 @@ int main(int argc, char ** argv)
     //if(NULL == acTemp)
         strcpy(acTemp, "127.0.0.1");
 
+
+    /* Establishing msg listener socket */
+
+    sMsgListeningAddr.sin_family = AF_INET;
+    sMsgListeningAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    sMsgListeningAddr.sin_port = htons(iMsgListeningPortNum);
+
+    iMsgListeningSocketFd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (iMsgListeningSocketFd < 0)
+    {
+        fprintf(stderr, "Error while opening msg listening socket\n");
+        exit(1);
+    }
+
+    while(!iMsgListeningPortNum)
+    {
+        if (bind(iMsgListeningSocketFd, (struct sockaddr *) &sMsgListeningAddr, sizeof(sMsgListeningAddr)) < 0)
+        {
+            fprintf(stderr, "Error while binding listening socket\n");
+            exit(1);
+        }
+
+        if(getsockname(iMsgListeningSocketFd, (struct sockaddr *) &temp, (socklen_t *) &addrlen) == 0 &&
+           temp.sin_family == AF_INET && addrlen == sizeof(temp))
+        {
+            iMsgListeningPortNum = ntohs(temp.sin_port);
+        }
+    }
+
+    std::cout << "Message listening port: " << iMsgListeningPortNum << "\n";
+
     /* Storing my info in sMyInfo struct */
     sMyInfo.name = username;
     sMyInfo.ipAddr = acTemp;
     sMyInfo.port = iListeningPortNum;
+    sMyInfo.msgPort = iMsgListeningPortNum;
     sMyInfo.addr = &sListeningAddr;
 
     /* Establishing sender socket */
@@ -112,6 +153,14 @@ int main(int argc, char ** argv)
     iSendingSocketFd = socket(AF_INET, SOCK_DGRAM, 0);
 
     if (iSendingSocketFd < 0)
+    {
+        fprintf(stderr, "Error while opening sender socket\n");
+        exit(1);
+    }
+
+    iMsgSendingSocketFd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (iMsgSendingSocketFd < 0)
     {
         fprintf(stderr, "Error while opening sender socket\n");
         exit(1);
@@ -131,10 +180,21 @@ int main(int argc, char ** argv)
         }
         sServerAddr.sin_port = htons(iListeningPortNum);
 
+        /* Set sServerMsgAddr that contains the addr to which text msgs are to be
+         * sent and received */
+        sServerMsgAddr.sin_family = AF_INET;
+        if(inet_pton(AF_INET, acTemp, &sServerMsgAddr.sin_addr) <= 0)
+        {
+            fprintf(stderr, "Error while storing the IP address. Please retry\n");
+            exit(1);
+        }
+        sServerMsgAddr.sin_port = htons(iMsgListeningPortNum);
+
         /* Adding server info into sServerInfo struct */
         sServerInfo.name = argv[1];
         sServerInfo.ipAddr = acTemp;
         sServerInfo.port = iListeningPortNum;
+        sServerInfo.msgPort = iMsgListeningPortNum;
 
         /* Set username to what's being passed as an arg */
         username = argv[1];
@@ -142,12 +202,14 @@ int main(int argc, char ** argv)
         /* Start all the threads */
         std::thread user_listener_thread(user_listener);
         std::thread msg_listener_thread(msg_listener);
+        std::thread spl_msg_listener_thread(spl_msg_listener);
         std::thread broadcast_message_thread(broadcast_message);
         std::thread heartbeat_thread(heartbeat);
 
         /* Wait for threads to join */
         user_listener_thread.join();
         msg_listener_thread.join();
+        spl_msg_listener_thread.join();
         broadcast_message_thread.join();
         heartbeat_thread.join();
 
@@ -200,8 +262,8 @@ int main(int argc, char ** argv)
         sprintf(&acBufferLocal[MSG_TYPE], "%d", (int) messageType::REQ_CONNECTION);
         strcpy(&acBufferLocal[NAME], username.c_str());
         sprintf(&acBufferLocal[DATA], "%d", iListeningPortNum);
-        sendto(iSendingSocketFd, acBufferLocal, BUFF_SIZE, 0,
-            (struct sockaddr *) &sConnectingAddr, sizeof(sockaddr_in));
+        int iTempStrLen = DATA + strlen(&acBufferLocal[DATA]) + 1;
+        sprintf(&acBufferLocal[iTempStrLen], "%d", iMsgListeningPortNum);
 
         /* Copying connecting addr info to server addr assuming it is
          * connecting to server. If it is not server, we get to know that when
@@ -211,11 +273,16 @@ int main(int argc, char ** argv)
         /* Start all the threads */
         std::thread user_listener_thread(user_listener);
         std::thread msg_listener_thread(msg_listener);
+        std::thread spl_msg_listener_thread(spl_msg_listener);
         std::thread broadcast_message_thread(broadcast_message);
         std::thread heartbeat_thread(heartbeat);
         
+        sendto(iSendingSocketFd, acBufferLocal, BUFF_SIZE, 0,
+            (struct sockaddr *) &sConnectingAddr, sizeof(sockaddr_in)); 
+        
         user_listener_thread.join();
         msg_listener_thread.join();
+        spl_msg_listener_thread.join();
         broadcast_message_thread.join();
         heartbeat_thread.join();
     }

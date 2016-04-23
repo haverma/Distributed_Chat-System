@@ -168,6 +168,36 @@ void flush_dead_clients(std::list<int> deadclients)
 	        }
             iter1++;
     	}
+
+        std::list<sockaddr_in *>::iterator iter2 = lpsClientsMsg.begin();
+
+        /* Remove entry from lpsClientsMsg */
+    	while(true)
+    	{
+            clientListMutex.lock();
+            if(iter2 == lpsClientsMsg.end())
+            {
+                clientListMutex.unlock();
+                break;
+            }
+        	int currPort = ntohs((*iter2)->sin_port); 
+            clientListMutex.unlock();
+        	
+            if(currPort == port)
+        	{
+                clientListMutex.lock();
+                delete *iter2;
+                iter2 = lpsClientsMsg.erase(iter2);
+                clientListMutex.unlock();
+	        }
+            iter2++;
+    	}
+
         i++;
 	}
+    msg_struct * temp = new msg_struct;
+    temp->msgType = messageType::CLIENT_LIST;
+    broadcastMutex.lock();
+    qpsBroadcastq.push(temp);
+    broadcastMutex.unlock();
 }
