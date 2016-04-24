@@ -98,7 +98,7 @@ extern int iResponseCount;
 extern std::string username;
 
 extern bool is_server, is_server_alive, declare_leader, leader_already_declared;
-extern bool connection_flag;
+extern bool connection_flag, shut_down;
 
 
 extern std::queue<msg_struct *> qpsBroadcastq;         /* broadcast queue */

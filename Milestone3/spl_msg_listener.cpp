@@ -23,12 +23,14 @@ void flush_dead_clients(std::list<int> deadclients);
 
 void print_msg_info(msg_struct * msg);
 
-bool is_client_already_present(std::string name)
+bool is_client_already_present(std::string name, std::string ip, int portNum)
 {
     for (std::list<msg_struct *>::iterator it = lpsClientInfo.begin();
             it != lpsClientInfo.end(); it++)
     {
-        if(((*it)->name).compare(name) == 0)
+        if(((*it)->name).compare(name) == 0 &&
+                ((*it)->ipAddr).compare(ip) == 0 &&
+                (*it)->port == portNum)
             return true;
     }
     return false;
@@ -39,7 +41,7 @@ void spl_msg_listener()
     int iRecLen = 0, iLenToBeSent = 0;
     char acBuffer[BUFF_SIZE] = "\0";
 
-    while(true)
+    while(shut_down)
     {
         memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
         iRecLen = recvfrom(iListeningSocketFd, acBuffer, BUFF_SIZE, 0,
@@ -87,7 +89,9 @@ int process_rec_spl_msg(char * acBuffer)
             {
                 if(is_server)
                 {
-                    if(!is_client_already_present(msg.name))
+                    inet_ntop(AF_INET, &(sRecAddr.sin_addr), acTempStr, INET_ADDRSTRLEN);
+
+                    if(!is_client_already_present(msg.name, std::string(acTempStr), atoi(&acBuffer[DATA])))
                     {
                         /* Create the two sockaddr_in struct and msg_struct struct
                          * to be inserted into the three clients list */
@@ -104,7 +108,6 @@ int process_rec_spl_msg(char * acBuffer)
 
                         psClientInfo = new msg_struct;
                         psClientInfo->name = &acBuffer[NAME];
-                        inet_ntop(AF_INET, &(sRecAddr.sin_addr), acTempStr, INET_ADDRSTRLEN);
                         psClientInfo->ipAddr = acTempStr;
                         psClientInfo->port = atoi(&acBuffer[DATA]);
                         psClientInfo->msgPort = atoi(&acBuffer[iTempIndex]);
@@ -144,10 +147,6 @@ int process_rec_spl_msg(char * acBuffer)
                         seqNumMutex.unlock();
                         sprintf(&acBuffer[DATA], "%d", iMsgListeningPortNum);
                         iLenToBeSent = BUFF_SIZE;
-                    }
-                    /* TODO: To be impemented */
-                    else
-                    {
                     }
                 }
                 else
@@ -239,7 +238,6 @@ int process_rec_spl_msg(char * acBuffer)
             {
                 if(!is_server)
                 {
-                    /* TODO: Implement the below two functions */
                     update_client_list(&msg);
                 }
                 displayMutex.lock();
@@ -389,7 +387,7 @@ int process_rec_spl_msg(char * acBuffer)
 
         default:
             {
-                fprintf(stdout, "Unexpected msg type '%d' received\n", (int) msg.msgType);
+                //fprintf(stdout, "Unexpected msg received\n", (int) msg.msgType);
                 iLenToBeSent = 0;
                 break;
             }
@@ -412,7 +410,7 @@ void update_client_list(msg_struct * psMessageStruct)
     {
         /* Copying the string into a new char pointer to change it from string to char pointer
          * and to make it char * from const char * */
-        char * temp = new char [line.length()+1];
+        char temp[450];
         std::strcpy (temp, line.c_str());
 
         //char pointer array to hold name, ip , port
@@ -462,4 +460,5 @@ void display_client_list()
         std::cout<< psClientInfo->name + " " + psClientInfo->ipAddr + ":" + std::to_string(psClientInfo->port)  << "\n";
     }
     clientListMutex.unlock();
+    std::cout << "\n";
 }

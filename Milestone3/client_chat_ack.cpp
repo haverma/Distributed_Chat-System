@@ -46,5 +46,5 @@ void check_ack_sb(int time_diff_sec)
             //sentbufferMutex.unlock();
         }
     }
+    close(sockfd);
 }
-

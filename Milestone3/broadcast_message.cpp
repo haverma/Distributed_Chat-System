@@ -20,12 +20,12 @@ std::string collect_clients_info();
 
 void broadcast_message()
 {
-    while(1)
+    int sockfd = socket(PF_INET, SOCK_DGRAM, 0);
+    while(shut_down)
 	{
         if(is_server)
    		{
-            char buf[BUFF_SIZE];
-            int sockfd = socket(PF_INET, SOCK_DGRAM, 0);
+            char buf[BUFF_SIZE]; 
             std::string message;
 
 	   	    while(!qpsBroadcastq.empty())
@@ -76,11 +76,9 @@ void broadcast_message()
 
                 send_to_all_members(sockfd, buf, sizeof(buf), 1);
             }
-
-            close(sockfd);
-		    //sleep(1);
         }
     }
+    close(sockfd);
 }
 
 void send_to_all_members(int sockfd, char * buf, size_t size, int iToWhichPort)
@@ -93,7 +91,7 @@ void send_to_all_members(int sockfd, char * buf, size_t size, int iToWhichPort)
             fprintf(stdout, "Error while sending msg to server\n");
         clientListMutex.lock();
         for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i) 
-        {		        	
+        {
             n = sendto(sockfd, buf, size, 0, (struct sockaddr *)*i, sizeof(*(*i)));
             if (n < 0) 
             fprintf(stdout, "Error while sending msg to clients\n"); 
@@ -123,10 +121,7 @@ bool trim_broadcast_message(std::map<int, msg_struct *> broadcastbuffer)
 	broadcastbufferMutex.lock();
 	for (it = broadcastbuffer.begin(); it != broadcastbuffer.end(); ++it) 
     {
-	    
 	    msg_struct* temp = it-> second;
-	    
-
 	    // Deleting the element and freeing the pointer to struc
 		if(temp != NULL)
 		{

@@ -82,7 +82,7 @@ void initiate_leader_election()
         {
             if((*i)->port == iListeningPortNum)
             {
-                if(strcmp((*i)->name.c_str(), username.c_str()) < 0)
+                if(strcmp((*i)->ipAddr.c_str(), sMyInfo.ipAddr.c_str()) < 0)
                 {
                     continue;
                 }
@@ -197,4 +197,5 @@ void initiate_leader_election()
         */
     }
     newLeaderElectedMutex.unlock();
+    close(iSockFd);
 }

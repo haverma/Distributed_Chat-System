@@ -10,6 +10,125 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <time.h>
+#include <unistd.h>
+
+/*
+void delete_map(std::map<int, msg_struct *> in)
+{
+    std::map<int, msg_struct *>::iterator mapIterate;
+    for (mapIterate = in.begin(); mapIterate != in.end(); ++mapIterate)
+    {
+        std::cout << "Deleting map entry\n";
+        if(mapIterate->second != NULL)
+            delete mapIterate->second;
+        in.erase(mapIterate);
+    }
+    std::cout << "\n\n\n";
+}
+
+void delete_q(std::queue<msg_struct *> in)
+{
+    msg_struct * msg;
+    while (!in.empty())
+    {
+        msg = in.front();
+        delete msg;
+        in.pop();
+    }
+}
+
+void delete_sockaddr_list(std::list<sockaddr_in *> in)
+{
+    std::list<sockaddr_in *>::iterator sockaddrListIterate;
+    for (sockaddrListIterate = in.begin(); sockaddrListIterate != in.end(); ++sockaddrListIterate)
+    {
+        std::cout << "Deleting list entry\n";
+        delete * sockaddrListIterate;
+        in.erase(sockaddrListIterate);
+    }
+    std::cout << "\n\n\n";
+}
+
+void delete_msg_list(std::list<msg_struct *> in)
+{
+    std::list<msg_struct *>::iterator msgListIterate;
+    for (msgListIterate = in.begin(); msgListIterate != in.end(); ++msgListIterate)
+    {
+        std::cout << "Deleting list entry\n";
+        delete * msgListIterate;
+        in.erase(msgListIterate);
+    }
+    std::cout << "\n\n\n";
+}
+*/
+
+void clean_up_app()
+{
+    for (std::map<int, msg_struct *>::iterator mapIterate = holdbackMap.begin();
+            mapIterate != holdbackMap.end(); ++mapIterate)
+    {
+        if(mapIterate->second != NULL)
+        {
+            std::cout << "Deleting holdback map entry\n";
+            delete mapIterate->second;
+        }
+        mapIterate = holdbackMap.erase(mapIterate);
+    }
+    for (std::map<int, msg_struct *>::iterator mapIterate = broadcastBufferMap.begin();
+            mapIterate != broadcastBufferMap.end(); ++mapIterate)
+    {
+        if(mapIterate->second != NULL)
+        {
+            std::cout << "Deleting holdback map entry\n";
+            delete mapIterate->second;
+        }
+        mapIterate = broadcastBufferMap.erase(mapIterate);
+    }
+    for (std::map<int, msg_struct *>::iterator mapIterate = sentBufferMap.begin();
+            mapIterate != sentBufferMap.end(); ++mapIterate)
+    {
+        if(mapIterate->second != NULL)
+        {
+            std::cout << "Deleting holdback map entry\n";
+            delete mapIterate->second;
+        }
+        mapIterate = sentBufferMap.erase(mapIterate);
+    }
+    for (std::list<sockaddr_in *>::iterator sockaddrListIterate = lpsClients.begin();
+            sockaddrListIterate != lpsClients.end(); ++sockaddrListIterate)
+    {
+        std::cout << "Deleting list entry\n";
+        delete * sockaddrListIterate;
+        sockaddrListIterate = lpsClients.erase(sockaddrListIterate);
+    }
+    for (std::list<sockaddr_in *>::iterator sockaddrListIterate = lpsClientsMsg.begin();
+            sockaddrListIterate != lpsClientsMsg.end(); ++sockaddrListIterate)
+    {
+        std::cout << "Deleting list entry\n";
+        delete * sockaddrListIterate;
+        sockaddrListIterate = lpsClientsMsg.erase(sockaddrListIterate);
+    }
+    for (std::list<msg_struct *>::iterator msgListIterate = lpsClientInfo.begin();
+            msgListIterate != lpsClientInfo.end(); ++msgListIterate)
+    {
+        std::cout << "Deleting list entry\n";
+        delete * msgListIterate;
+        msgListIterate = lpsClientInfo.erase(msgListIterate);
+    }
+    msg_struct * msg;
+    while (!qpsMsgBroadcastq.empty())
+    {
+        msg = qpsMsgBroadcastq.front();
+        delete msg;
+        qpsMsgBroadcastq.pop();
+    }
+    while (!qpsBroadcastq.empty())
+    {
+        msg = qpsBroadcastq.front();
+        delete msg;
+        qpsBroadcastq.pop();
+    }
+}
 
 void user_listener()
 {
@@ -26,7 +145,7 @@ void user_listener()
         exit(1);
     }
 
-    while(true)
+    while(shut_down)
     {
         strcpy(acBuffer, "");
         iTemp = 0;
@@ -40,15 +159,17 @@ void user_listener()
                 sprintf(&acBuffer[DATA], "%d", iListeningPortNum);
                 sendto(iSocketFd, acBuffer, BUFF_SIZE, 0,
                 (struct sockaddr *) &sServerAddr, sizeof(sockaddr_in));
-                exit(1);
             }
             else
             {
-                std::cout<<"Exiting the chat application... Server Closing...!!"<<"\n";
-                exit(1);
+                fprintf(stdout, "Server exited. Leader election in progress\n");
             }
-                
+            shut_down = false;
+            sleep(1);
+            clean_up_app();
+            exit(0);
         }
+
         iTemp = strlen(&acBuffer[DATA]);
         acBuffer[DATA + iTemp - 1] = '\0';
         if(!strcmp(&acBuffer[DATA], ""))
@@ -97,4 +218,5 @@ void user_listener()
                     (struct sockaddr *) &sServerMsgAddr, sizeof(sockaddr_in));
         }
     }
+    close(iSocketFd);
 }

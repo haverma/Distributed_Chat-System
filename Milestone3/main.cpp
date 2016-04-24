@@ -11,6 +11,7 @@
 #include "./chat_system.h"
 #include <ifaddrs.h>
 #include <thread>
+#include <unistd.h>
 
 struct sockaddr_in sListeningAddr, sMsgListeningAddr;
 struct sockaddr_in sRecAddr, sRecMsgAddr;
@@ -20,7 +21,7 @@ int iMsgListeningSocketFd, iMsgSendingSocketFd;
 int iListeningPortNum = 0, iMsgListeningPortNum = 0;
 std::string username;
 bool is_server, is_server_alive, declare_leader, leader_already_declared;
-bool connection_flag = false;
+bool connection_flag = false, shut_down = true;
 std::queue<msg_struct *> qpsBroadcastq;
 std::queue<msg_struct *> qpsMsgBroadcastq;
 std::list<msg_struct *> lpsClientInfo;
@@ -61,7 +62,7 @@ int main(int argc, char ** argv)
     struct sockaddr_in sConnectingAddr;
     msg_struct * psMsgStruct;
     sockaddr_in * psSockAddr;
-    char acTemp[50];
+    char acTemp[50] = "";
     struct sockaddr_in temp;
     int addrlen = sizeof(temp);
 
@@ -69,6 +70,16 @@ int main(int argc, char ** argv)
     {
         fprintf(stderr,"Incorrect number of arguments supplied. Please retry\n");
         exit(1);
+    }
+
+    int i = 0;
+    while(argv[1][i] != '\0')
+    {
+        if(!isalnum(argv[1][i++]))
+        {
+            fprintf(stdout, "Not a valid name. Please use alpha numeric characters\n");
+            exit(1);
+        }
     }
 
 
@@ -107,9 +118,8 @@ int main(int argc, char ** argv)
     
 
     get_ip_address(acTemp);
-    if(NULL == acTemp)
+    if(!strcmp(acTemp, ""))
         strcpy(acTemp, "127.0.0.1");
-
 
     /* Establishing msg listener socket */
 
@@ -170,8 +180,8 @@ int main(int argc, char ** argv)
     /* If initiating a new chat */
     if(2 == argc)
     {
-        fprintf(stdout, "\n%s started a new chat, listening on %s:%d", argv[1], acTemp, iListeningPortNum);
-        fprintf(stdout, "Succeeded, current users:\n%s %s.%d\nWaiting for others to join...\n",
+        fprintf(stdout, "\n%s started a new chat, listening on %s:%d\n\n", argv[1], acTemp, iListeningPortNum);
+        fprintf(stdout, "Succeeded, current users:\n%s %s:%d (Leader)\n\nWaiting for others to join...\n",
                 argv[1], acTemp, iListeningPortNum);
 
         is_server = true;
@@ -247,7 +257,15 @@ int main(int argc, char ** argv)
 
         sServerInfo.ipAddr = token;
 
-        token = strtok(NULL, " :");
+        char * pcTempToken;
+        pcTempToken = strtok(NULL, " :");
+        if(pcTempToken == 0)
+        {
+            fprintf(stdout, "Incorrect arguments. Please retry\n");
+            exit(1);
+        }
+        token = pcTempToken;
+
         if(NULL == token.c_str())
         {
             fprintf(stderr, "The port specified is not valid. Please retry\n");
@@ -264,7 +282,7 @@ int main(int argc, char ** argv)
 
         sServerInfo.port = atoi(token.c_str());
         
-        fprintf(stdout, "\n%s joining a new chat on %s:%d, listening on %s:%d\n", argv[1],
+        fprintf(stdout, "\n%s joining a new chat on %s:%d, listening on %s:%d\n\n", argv[1],
                 sServerInfo.ipAddr.c_str(), sServerInfo.port, acTemp, iListeningPortNum);
 
         sprintf(&acBufferLocal[MSG_TYPE], "%d", (int) messageType::REQ_CONNECTION);
@@ -291,7 +309,7 @@ int main(int argc, char ** argv)
         sleep(5);
         if(connection_flag == false)
         {
-            fprintf(stdout, "Sorry, no chat is active on %s:%d, try again later.\nBye."
+            fprintf(stdout, "Sorry, no chat is active on %s:%d, try again later.\nBye.",
                     sServerInfo.ipAddr.c_str(), sServerInfo.port);
             exit(1);
         }

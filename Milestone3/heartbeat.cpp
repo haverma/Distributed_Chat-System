@@ -23,7 +23,7 @@ void heartbeat()
     int n;
     int sockfd = socket(PF_INET, SOCK_DGRAM, 0);
     bool bListEmpty, bServerAlive;
-    while(1)
+    while(shut_down)
     {
         /* If server, check if clients are alive */
         if(is_server)

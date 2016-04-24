@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 #include <sstream>
 #include <cstring>
+#include <unistd.h>
 
 int process_rec_msg(char * acBuffer);
 void get_msg_from_bbm(int seqNum, char * name, char * data);
@@ -39,7 +40,7 @@ void msg_listener()
     int iRecLen = 0, iLenToBeSent = 0;
     char acBuffer[BUFF_SIZE] = "\0";
 
-    while(true)
+    while(shut_down)
     {
         memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
         iRecLen = recvfrom(iMsgListeningSocketFd, acBuffer, BUFF_SIZE, 0,
@@ -110,6 +111,7 @@ int process_rec_msg(char * acBuffer)
                     sprintf(&acBuffer[MSG_TYPE], "%d", (int)messageType::ACK);
                     sprintf(&acBuffer[MSG_ID], "%d", msg.msgId);
                     iLenToBeSent = BUFF_SIZE;
+                    usleep(3000);
                 }
                 break;
             }
@@ -127,7 +129,6 @@ int process_rec_msg(char * acBuffer)
                     displayMutex.unlock();
                     iExpSeqNum++;
                     iLenToBeSent = 0;
-                    /* TODO: Implement the below function */
                     check_hbm_and_display();
                 }
                 else if(msg.seqNum > iExpSeqNum)
@@ -172,15 +173,17 @@ int process_rec_msg(char * acBuffer)
                 if(!is_server)
                 {
                     /* Remove entry from sent buffer */
+                    std::map<int, msg_struct *>::iterator iterate =
+                                sentBufferMap.find(msg.msgId);
                     sentbufferMutex.lock();
-                    if (sentBufferMap.find(msg.msgId) != sentBufferMap.end())
+                    if (iterate != sentBufferMap.end())
                     {
-                        /* TODO: Delete the entry before erasing */
+                        delete iterate->second;
                         sentBufferMap.erase(msg.msgId);
                     }
                     else
                     {
-                        fprintf(stderr, "Unexpected ack received\n");
+                        //fprintf(stderr, "Unexpected ack received\n");
                         sentbufferMutex.unlock();
                         break;
                     }
@@ -235,7 +238,7 @@ int process_rec_msg(char * acBuffer)
 
         default:
             {
-                fprintf(stdout, "Unexpected msg type '%d' received\n", (int) msg.msgType);
+                //fprintf(stdout, "Unexpected msg received\n", (int) msg.msgType);
                 iLenToBeSent = 0;
                 break;
             }            
