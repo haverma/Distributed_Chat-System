@@ -129,7 +129,9 @@ int process_rec_msg(char * acBuffer)
                                 sServerInfo.port, psClientInfo->ipAddr.c_str(), psClientInfo->port);
                         psMsg->data = acTempStr;
                         broadcastMutex.lock();
-                        qpsBroadcastq.push(psMsg);
+                        std::queue<msg_struct *> new_client_queue;
+                        new_client_queue.push(psMsg);
+                        broadcastPortToQueueMap[atoi(&acBuffer[DATA])] = new_client_queue;
                         broadcastMutex.unlock();
 
                         /* Insert CLIENT_LIST msg to broadcast queue */
@@ -142,7 +144,7 @@ int process_rec_msg(char * acBuffer)
                         }
                         psMsg->msgType = messageType::CLIENT_LIST;
                         broadcastMutex.lock();
-                        qpsBroadcastq.push(psMsg);
+                        broadcastPortToQueueMap[atoi(&acBuffer[DATA])].push(psMsg);
                         broadcastMutex.unlock();
 
                         /* Send CONNECTION_ESTABLISHED to client */
@@ -232,22 +234,23 @@ int process_rec_msg(char * acBuffer)
                         break;
                     }
                     psMsg->msgType = messageType::MSG;
-                    seqNumMutex.lock();
+                    /* seqNumMutex.lock();
                     psMsg->seqNum = iSeqNum;
                     iSeqNum++;
-                    seqNumMutex.unlock();
+                    seqNumMutex.unlock();*/
                     psMsg->name = msg.name;
                     psMsg->data = msg.data;
-
-                    /* Push the msg to the broadcast queue */
-                    broadcastMutex.lock();
-                    qpsBroadcastq.push(psMsg);
-                    broadcastMutex.unlock();
+                    
 
                     /* Send ACK to client. Note that sRecAddr's port should be
                      * set to listening port of whoever sent the msg. Only
                      * then, the response will reach the client */
                     sRecAddr.sin_port = htons(atoi(&acBuffer[SENDER_LISTENING_PORT]));
+                    /* Pushing into the Broadcast Queue */
+                    broadcastMutex.lock();
+                    broadcastPortToQueueMap[atoi(&acBuffer[SENDER_LISTENING_PORT])].push(psMsg);
+                    broadcastMutex.unlock();
+
                     memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
                     sprintf(&acBuffer[MSG_TYPE], "%d", (int)messageType::ACK);
                     sprintf(&acBuffer[MSG_ID], "%d", msg.msgId);
@@ -625,12 +628,11 @@ void update_client_list(msg_struct * psMessageStruct)
 void display_client_list()
 {
     //Getting the server info from the first element of the list
-    msg_struct * psServerInfo = lpsClientInfo.front();
-    std::cout<< psServerInfo->name + " " + psServerInfo->ipAddr + ":" + std::to_string(psServerInfo->port) + " (Leader)" << "\n";
+    std::cout<< sServerInfo.name + " " + sServerInfo.ipAddr + ":" + std::to_string(sServerInfo.port) + " (Leader)" << "\n";
 
     //Displaying the clients information in a list
     //starting from the second element in the list
-    for (std::list<msg_struct *>::iterator i = std::next(lpsClientInfo.begin()); i != lpsClientInfo.end(); ++i)
+    for (std::list<msg_struct *>::iterator i = lpsClientInfo.begin(); i != lpsClientInfo.end(); ++i)
     {
         msg_struct * psClientInfo = *i; 
         std::cout<< psClientInfo->name + " " + psClientInfo->ipAddr + ":" + std::to_string(psClientInfo->port)  << "\n";

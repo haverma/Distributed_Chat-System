@@ -1,0 +1,14 @@
+Things to do
+1.)Exit client when server not running
+2.)Put break in msg_listener.cpp
+3.)Retreive MSG::Not being sent
+4.)ACK not being sent
+5.)Seq Number not being initialized to zero when a new client joins the chat
+6.)Sent retrieve message for all messages having sequence number less than expected.
+7.)Flush the broadcast buffer
+8.)Sequence numbe for client list and client info
+9.)Wrap the sequence number when it reaches the max of integers
+10.)Send retreive message for messages only with missing sequence numbers
+11.)Clear the entire broadcast buffer
+12.)Why Messages block when unexpected ACK is received?
+13.)Client with same name should not be allowed to join the chat

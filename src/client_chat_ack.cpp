@@ -17,7 +17,7 @@
 
 
 
-void check_ack_sb()
+void check_ack_sb(int time_diff_sec)
 {
  
             double diff;
@@ -28,14 +28,8 @@ void check_ack_sb()
 		    for (it = sentBufferMap.begin(); it != sentBufferMap.end(); ++it) 
 		    {
 				msg_struct* temp = it-> second;
-                diff = time(NULL) - temp->timestamp;
-				if(diff>6 && temp->attempts >=2)
-				{
-                    //TODO
-                    printf("Initiate Leader election");
-                    break;
-				}
-				else if(diff > 6 && temp->attempts < 2)
+                diff = time(NULL) - temp->timestamp;				
+				if(diff > time_diff_sec)
 				{
 					std::string message = temp->data;
 	            	sprintf(&buf[MSG_TYPE], "%d", temp->msgType);

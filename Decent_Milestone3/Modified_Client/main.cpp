@@ -16,36 +16,39 @@ struct sockaddr_in sListeningAddr;
 struct sockaddr_in sRecAddr;
 int iRecAddrLen;
 int iListeningSocketFd, iSendingSocketFd;
-int iListeningPortNum; // = 8218;
+int iListeningPortNum = 0;
 std::string username;
-bool is_server;
+bool is_server, is_server_alive, declare_leader, leader_already_declared;
 std::queue<msg_struct *> qpsBroadcastq;
 std::list<msg_struct *> lpsClientInfo;
 std::list<sockaddr_in *> lpsClients;
 std::map<int, msg_struct *> holdbackMap;
 std::map<int, msg_struct *> sentBufferMap;
 std::map<int, msg_struct *> broadcastBufferMap;
-std::map<int, std::queue<msg_struct *>> broadcastPortToQueueMap;
 std::list<int> liCurrentClientPort; 
 int iSeqNum = 0, iExpSeqNum = 0;
-int iMsgId = 0;
+int iMsgId = 0, iResponseCount = 0;
 std::mutex seqNumMutex;
 std::mutex msgIdMutex;
 std::mutex broadcastMutex;
 std::mutex clientListMutex;
 std::mutex broadcastbufferMutex;
 std::mutex sentbufferMutex;
-std::mutex CurrentClientsListMutex;
+std::mutex heartbeatMutex;
+std::mutex newLeaderElectedMutex;
 msg_struct sServerInfo, sMyInfo;
 sockaddr_in sServerAddr;
+int P_value = 0;
+int A_value = 0;
+std::map<int, std::list<int >> MapmsgId_propTS;   
+std::list<msg_struct *> hbQ; 
 
 void get_ip_address(char * ip);
 void user_listener();
 void msg_listener();
-void check_ack_sb();
+void check_ack_sb(int time_diff_sec);
 void broadcast_message();
-void client_heartbeat();
-
+void heartbeat();
 
 int main(int argc, char ** argv)
 {
@@ -55,18 +58,15 @@ int main(int argc, char ** argv)
     msg_struct * psMsgStruct;
     sockaddr_in * psSockAddr;
     char acTemp[50];
+    struct sockaddr_in temp;
+    int addrlen = sizeof(temp);
 
-    if(argc != 2 && argc != 3 && argc != 4)
+    if(argc != 2 && argc != 3)
     {
         fprintf(stderr,"Incorrect number of arguments supplied. Please retry\n");
         exit(1);
     }
 
-    if(argc == 3)
-        iListeningPortNum = atoi(argv[2]);
-    else iListeningPortNum = atoi(argv[3]);
-
-    printf("\nThis user listens to port number '%d'\n", iListeningPortNum);
 
     iRecAddrLen = sizeof(sRecAddr);
 
@@ -84,11 +84,22 @@ int main(int argc, char ** argv)
         exit(1);
     }
 
-    if (bind(iListeningSocketFd, (struct sockaddr *) &sListeningAddr, sizeof(sListeningAddr)) < 0)
+    while(!iListeningPortNum)
     {
-        fprintf(stderr, "Error while binding listening socket\n");
-        exit(1);
+        if (bind(iListeningSocketFd, (struct sockaddr *) &sListeningAddr, sizeof(sListeningAddr)) < 0)
+        {
+            fprintf(stderr, "Error while binding listening socket\n");
+            exit(1);
+        }
+
+        if(getsockname(iListeningSocketFd, (struct sockaddr *) &temp, (socklen_t *) &addrlen) == 0 &&
+           temp.sin_family == AF_INET && addrlen == sizeof(temp))
+        {
+            iListeningPortNum = ntohs(temp.sin_port);
+        }
     }
+
+    printf("\nThis user listens to port number '%d'\n", iListeningPortNum);
 
     //get_ip_address(acTemp);
     //if(NULL == acTemp)
@@ -111,70 +122,76 @@ int main(int argc, char ** argv)
     }
 
     /* If initiating a new chat */
-    if(3 == argc)
+    if(2 == argc)
     {
-        is_server = true;
-        /* Start all the threads */
-        
-        sServerAddr.sin_family = AF_INET;
-        if(inet_pton(AF_INET, acTemp, &sServerAddr.sin_addr) <= 0)
-        {
-            fprintf(stderr, "Error while storing the IP address. Please retry\n");
-            exit(1);
-        }
-        sServerAddr.sin_port = htons(iListeningPortNum);
+        //is_server = true;
 
-        /* Adding the server info in the clients list */
-        //psMsgStruct = (msg_struct * ) malloc(sizeof(msg_struct));
-        psMsgStruct = new msg_struct;//();
-        if(NULL == psMsgStruct)
-        {
-            fprintf(stderr, "Error while allocating memory. Please retry\n");
-            exit(1);
-        }
+        /* Set sServerAddr */
+        // sServerAddr.sin_family = AF_INET;
+        // if(inet_pton(AF_INET, acTemp, &sServerAddr.sin_addr) <= 0)
+        // {
+        //     fprintf(stderr, "Error while storing the IP address. Please retry\n");
+        //     exit(1);
+        // }
+        // sServerAddr.sin_port = htons(iListeningPortNum);
 
-        /* Adding server addr in the clients list */
-        //psSockAddr = (sockaddr_in *) malloc(sizeof(sockaddr_in));
-        psSockAddr = new sockaddr_in;//();
-        psSockAddr->sin_family = AF_INET;
-        if(inet_pton(AF_INET, acTemp, &(psSockAddr->sin_addr)) <= 0)
-        {
-            fprintf(stderr, "Error while storing the IP address. Please retry\n");
-            exit(1);
-        }
-        psSockAddr->sin_port = htons(iListeningPortNum);
-        //clientListMutex.lock();
-        //sServerAddr = psSockAddr;
-        //clientListMutex.unlock();
-
-        /* Adding server info into sServerInfo struct */
-        sServerInfo.name = argv[1];
-        sServerInfo.ipAddr = acTemp;
-        sServerInfo.port = iListeningPortNum;
+        // /* Adding server info into sServerInfo struct */
+        // sServerInfo.name = argv[1];
+        // sServerInfo.ipAddr = acTemp;
+        // sServerInfo.port = iListeningPortNum;
 
         /* Set username to what's being passed as an arg */
+        sockaddr_in * psAddr = new sockaddr_in;//();
+        if(psAddr == NULL)
+        {
+            fprintf(stderr, "Malloc failed. Please retry\n");
+            exit(1);
+        }
+        psAddr->sin_family = AF_INET;
+        if(inet_pton(AF_INET, acTemp, &(psAddr->sin_addr)) <= 0)
+        {
+            fprintf(stderr, "Error while storing the IP address. Please retry\n");
+            exit(1);
+        }
+        psAddr->sin_port = htons(iListeningPortNum);
+
+        //psClientInfo = (msg_struct *) malloc(sizeof(msg_struct));
+        msg_struct * psClientInfo = new msg_struct;//();
+        if(psClientInfo == NULL)
+        {
+            fprintf(stderr, "Malloc failed. Please retry\n");
+            exit(1);
+        }
+        psClientInfo->name = argv[1];
+        psClientInfo->ipAddr = acTemp;
+        psClientInfo->port = iListeningPortNum;
+
+        /* Insert it into the two client lists */
+        clientListMutex.lock();
+        lpsClients.push_back(psAddr);
+        lpsClientInfo.push_back(psClientInfo);
+        clientListMutex.unlock();
         username = argv[1];
+
         /* Start all the threads */
         std::thread user_listener_thread(user_listener);
         std::thread msg_listener_thread(msg_listener);
         std::thread broadcast_message_thread(broadcast_message);
-        std::thread client_heartbeat_thread(client_heartbeat);
+        //std::thread heartbeat_thread(heartbeat);
 
+        /* Wait for threads to join */
         user_listener_thread.join();
         msg_listener_thread.join();
         broadcast_message_thread.join();
-        client_heartbeat_thread.join();
+        //heartbeat_thread.join();
 
     }
 
     /* If connecting to an already present chat system */
     else
     {
-        is_server = false;
+       
 
-        
-
-        /* Set username to what's being passed as an arg */
         username = argv[1];
 
         sConnectingAddr.sin_family = AF_INET;
@@ -192,7 +209,6 @@ int main(int argc, char ** argv)
             exit(1);
         }
 
-        sServerInfo.ipAddr = token;
 
         token = strtok(NULL, " :");
         if(NULL == token.c_str())
@@ -209,7 +225,6 @@ int main(int argc, char ** argv)
 
         sConnectingAddr.sin_port = htons( (int) strtol(token.c_str(), NULL, 10) );
 
-        sServerInfo.port = atoi(token.c_str());
 
         sprintf(&acBufferLocal[MSG_TYPE], "%d", (int) messageType::REQ_CONNECTION);
         strcpy(&acBufferLocal[NAME], username.c_str());
@@ -217,23 +232,19 @@ int main(int argc, char ** argv)
         sendto(iSendingSocketFd, acBufferLocal, BUFF_SIZE, 0,
             (struct sockaddr *) &sConnectingAddr, sizeof(sockaddr_in));
 
-        /* Copying connecting addr info to server addr assuming it is
-         * connecting to server. If it is not server, we get to know that when
-         * we receive SERVER_INFO */
-        sServerAddr = sConnectingAddr; 
+       
+
         /* Start all the threads */
         std::thread user_listener_thread(user_listener);
         std::thread msg_listener_thread(msg_listener);
         std::thread broadcast_message_thread(broadcast_message);
-        std::thread client_heartbeat_thread(client_heartbeat);
+        //std::thread heartbeat_thread(heartbeat);
         
         user_listener_thread.join();
         msg_listener_thread.join();
         broadcast_message_thread.join();
-        client_heartbeat_thread.join();
+        //heartbeat_thread.join();
     }
-
-
     return 0;
 }
 

@@ -19,58 +19,87 @@ std::string collect_clients_info();
 
 void broadcast_message(){
 
-   if(is_server)
-   {
+   
 	   while(1)
-	   {    char buf[BUFF_SIZE];
-	   	    while(!qpsBroadcastq.empty())
-	   	    {	
-	   	    	//picking the first element in the broadcast queue
-	   	    	broadcastMutex.lock();
-	   	    	msg_struct* psMsgStruc = qpsBroadcastq.front();
-	   	    	qpsBroadcastq.pop();
-	   	    	broadcastMutex.unlock();
+	   {	
+	   	   if(is_server)
+	   	   {   
+		       std::map<int, std::queue<msg_struct *>>::iterator queues_itereator =broadcastPortToQueueMap.begin();
+		   		char buf[BUFF_SIZE];
+		   	    for (queues_itereator; queues_itereator!=broadcastPortToQueueMap.end(); ++queues_itereator)
+		   	    {
+		   	        
+			   	    	std::queue<msg_struct *> current_client_queue = queues_itereator->second;
+			   	        if(!queues_itereator->second.empty())
+			   	        {
+				   	    	/* Iterating through the queues of all the clients*/
+				   	    	msg_struct* psMsgStruc = queues_itereator->second.front();
+				   	    	queues_itereator->second.pop();
 
-	   	    	broadcastbufferMutex.lock();
-	            //mlsBroadcastm.insert ( std::pair<long,msg_struct *>(psMsgStruc->seqNum, psMsgStruc) );
-	            if(broadcastBufferMap.size() == BBMAP_THRESHOLD)
-	            {
-	                trim_broadcast_message(broadcastBufferMap);
-	            }
-	            broadcastBufferMap[psMsgStruc->seqNum] = psMsgStruc;
-	            broadcastbufferMutex.unlock();
-	            std::string message;
-	            memset((char *)&buf, 0, sizeof(buf));
-	            if(psMsgStruc->msgType == CLIENT_LIST){
-	                message = collect_clients_info();
-	                sprintf(&buf[MSG_TYPE], "%d", psMsgStruc->msgType);
-	            	sprintf(&buf[DATA], "%s", message.c_str());
-	            }
-	            else if(psMsgStruc->msgType == NEW_CLIENT_INFO){
-	            	message = psMsgStruc->data;
-	                sprintf(&buf[MSG_TYPE], "%d", psMsgStruc->msgType);
-	            	sprintf(&buf[DATA], "%s", message.c_str());
-	            }
-	            else
-	            {
-	            	message = psMsgStruc->data;
-	            	sprintf(&buf[MSG_TYPE], "%d", psMsgStruc->msgType);
-	            	sprintf(&buf[DATA], "%s", message.c_str());
-		            sprintf(&buf[NAME], "%s", psMsgStruc->name.c_str());
-		            sprintf(&buf[SEQ_NUM], "%d", psMsgStruc->seqNum);
-	            }
-	            
-	            
-		        for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i) 
-		        {
-		        	int sockfd = socket(PF_INET, SOCK_DGRAM, 0);
-		            int n = sendto(sockfd, buf, sizeof(buf), 0, (struct sockaddr *)*i, sizeof(*(*i)));
-		            if (n < 0) 
-		                perror("ERROR in sendto"); 
-		        }
+				   	    	if(psMsgStruc->msgType == messageType::MSG)
+					   	    {	
+					   	    	seqNumMutex.lock();
+	                    		psMsgStruc->seqNum = iSeqNum;
+	                    		iSeqNum++;
+	                    		seqNumMutex.unlock();
+	                    	}
+
+
+				   	    	broadcastbufferMutex.lock();
+				            //mlsBroadcastm.insert ( std::pair<long,msg_struct *>(psMsgStruc->seqNum, psMsgStruc) );
+				            if(broadcastBufferMap.size() == BBMAP_THRESHOLD)
+				            {
+				                trim_broadcast_message(broadcastBufferMap);
+				            }
+
+				            broadcastBufferMap[psMsgStruc->seqNum] = psMsgStruc;
+				            broadcastbufferMutex.unlock();
+				            std::string message;
+				            memset((char *)&buf, 0, sizeof(buf));
+				            if(psMsgStruc->msgType == CLIENT_LIST)
+				            {
+				                message = collect_clients_info();
+				                sprintf(&buf[MSG_TYPE], "%d", psMsgStruc->msgType);
+				            	sprintf(&buf[DATA], "%s", message.c_str());
+				            }
+				            else if(psMsgStruc->msgType == NEW_CLIENT_INFO)
+				            {
+				            	message = psMsgStruc->data;
+				                sprintf(&buf[MSG_TYPE], "%d", psMsgStruc->msgType);
+				            	sprintf(&buf[DATA], "%s", message.c_str());
+				            }
+				            else
+				            {
+				            	message = psMsgStruc->data;
+				            	sprintf(&buf[MSG_TYPE], "%d", psMsgStruc->msgType);
+				            	sprintf(&buf[DATA], "%s", message.c_str());
+					            sprintf(&buf[NAME], "%s", psMsgStruc->name.c_str());
+					            sprintf(&buf[SEQ_NUM], "%d", psMsgStruc->seqNum);
+				            }
+				            int sockfd = socket(PF_INET, SOCK_DGRAM, 0);	
+				            int n = sendto(sockfd, buf, sizeof(buf), 0, (struct sockaddr *)&sServerAddr, sizeof(sServerAddr));
+					        if (n < 0) 
+					            std::cout<< "Error in sending to server \n";
+					        for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i) 
+					        {
+					            n = sendto(sockfd, buf, sizeof(buf), 0, (struct sockaddr *)*i, sizeof(*(*i)));
+					            if (n < 0) 
+					                std::cout<<"Error in sending to client\n"; 
+					        }
+					        close(sockfd);
+
+				    	}
+				    	else
+				    	{
+				    		continue;
+				    	}
+				    	/* sleep(9); This sleep can be used to test the feature of round robin scheduling*/
+
+			    }
+			     
+			    //sleep(1);
 		    }
-		    //sleep(1);
-	    }
+	    
     }
 }
 
