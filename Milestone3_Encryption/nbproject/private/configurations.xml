@@ -5,7 +5,7 @@
       <in>broadcast_message.cpp</in>
       <in>chat_system.h</in>
       <in>client_chat_ack.cpp</in>
-      <in>encoder.cpp.hpp</in>
+      <in>encoder.hpp</in>
       <in>encoder_test.cpp</in>
       <in>heartbeat.cpp</in>
       <in>leader_election.cpp</in>

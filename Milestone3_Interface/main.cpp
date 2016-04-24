@@ -12,21 +12,22 @@
 #include <ifaddrs.h>
 #include <thread>
 #include <unistd.h>
+#include <signal.h>
+#include <sys/syscall.h>
 
-struct sockaddr_in sListeningAddr, sMsgListeningAddr;
-struct sockaddr_in sRecAddr, sRecMsgAddr;
-int iRecAddrLen, iRecMsgAddrLen;
+#include "mainwindow.h"
+#include <QApplication>
+
+struct sockaddr_in sListeningAddr;
+struct sockaddr_in sRecAddr;
+int iRecAddrLen;
 int iListeningSocketFd, iSendingSocketFd;
-int iMsgListeningSocketFd, iMsgSendingSocketFd;
-int iListeningPortNum = 0, iMsgListeningPortNum = 0;
+int iListeningPortNum = 0;
 std::string username;
 bool is_server, is_server_alive, declare_leader, leader_already_declared;
-bool connection_flag = false, shut_down = true;
 std::queue<msg_struct *> qpsBroadcastq;
-std::queue<msg_struct *> qpsMsgBroadcastq;
 std::list<msg_struct *> lpsClientInfo;
 std::list<sockaddr_in *> lpsClients;
-std::list<sockaddr_in *> lpsClientsMsg;
 std::map<int, msg_struct *> holdbackMap;
 std::map<int, msg_struct *> sentBufferMap;
 std::map<int, msg_struct *> broadcastBufferMap;
@@ -34,18 +35,18 @@ std::list<int> liCurrentClientPort;
 int iSeqNum = 0, iExpSeqNum = 0;
 int iMsgId = 0, iResponseCount = 0;
 std::mutex seqNumMutex;
-std::mutex expSeqNumMutex;
 std::mutex msgIdMutex;
 std::mutex broadcastMutex;
-std::mutex msgBroadcastMutex;
 std::mutex clientListMutex;
 std::mutex broadcastbufferMutex;
 std::mutex sentbufferMutex;
 std::mutex heartbeatMutex;
 std::mutex newLeaderElectedMutex;
-std::mutex displayMutex;
 msg_struct sServerInfo, sMyInfo;
-sockaddr_in sServerAddr, sServerMsgAddr;
+sockaddr_in sServerAddr;
+
+//#include "globals.h"
+MainWindow* w;
 
 void get_ip_address(char * ip);
 void user_listener();
@@ -53,7 +54,78 @@ void msg_listener();
 void check_ack_sb(int time_diff_sec);
 void broadcast_message();
 void heartbeat();
-void spl_msg_listener();
+
+
+void interfaceLoop(int argc, char* argv[])
+{
+    //pid_t parent = getpid();
+    //printf("PID = %d\n", parent );
+    QApplication a(argc, argv);
+    w = new MainWindow(NULL);
+
+    // window title
+    w->setWindowTitle(username.c_str());
+    // stylesheet
+    w->setStyleSheet("QWidget { background-color: #222222 }"
+                     "QMainWindow { background-color: #222222 }"
+                     "QPlainTextEdit { background-color: #222200 }"
+                     "QPlainTextEdit { color: #88ffff }"
+                     "QListWidget { background-color: #302828 }"
+                     "QListWidget { color: #ff5555 }"
+                     "QTextBrowser { background-color: #101515 }"
+                     "QTextBrowser { color: #22ffff }"
+                     "QLabel { color: #ffffff }");
+
+    w->updateServerLabel(is_server);
+/*
+    "background-color: #113333;"
+    "selection-color: #113333;"
+    "selection-background-color: blue;"
+*/
+    w->show();
+
+    a.exec();
+    delete w;
+
+    // send closing signal
+    char acBuffer[BUFF_SIZE] = "";
+    int iTemp = 0;
+    msg_struct * psMsg = NULL;
+    int iSocketFd;
+
+    iSocketFd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (iSocketFd < 0)
+    {
+        fprintf(stderr, "Error while opening socket\n");
+        exit(1);
+    }
+
+    if(!is_server)
+    {
+        // Store CHAT msg into acBuffer and send it to the server
+        sprintf(&acBuffer[MSG_TYPE], "%d", (int) messageType::CLIENT_EXITED);
+        sprintf(&acBuffer[DATA], "%d", iListeningPortNum);
+        sendto(iSocketFd, acBuffer, BUFF_SIZE, 0,
+        (struct sockaddr *) &sServerAddr, sizeof(sockaddr_in));
+        exit(1);
+    }
+    else
+    {
+        std::cout<<"Exiting the chat application... Server Closing.. !!"<<"\n";
+        exit(1);
+    }
+    // done sending close signal
+
+    //kill(parent, SIGEV_THREAD_ID);
+    std::terminate();
+    printf("Closed application\n");
+}
+
+void interface(void)
+{
+    interfaceLoop(0, NULL);
+}
 
 int main(int argc, char ** argv)
 {
@@ -62,7 +134,7 @@ int main(int argc, char ** argv)
     struct sockaddr_in sConnectingAddr;
     msg_struct * psMsgStruct;
     sockaddr_in * psSockAddr;
-    char acTemp[50] = "";
+    char acTemp[50];
     struct sockaddr_in temp;
     int addrlen = sizeof(temp);
 
@@ -72,19 +144,8 @@ int main(int argc, char ** argv)
         exit(1);
     }
 
-    int i = 0;
-    while(argv[1][i] != '\0')
-    {
-        if(!isalnum(argv[1][i++]))
-        {
-            fprintf(stdout, "Not a valid name. Please use alpha numeric characters\n");
-            exit(1);
-        }
-    }
-
 
     iRecAddrLen = sizeof(sRecAddr);
-    iRecMsgAddrLen = sizeof(sRecMsgAddr);
 
     /* Establishing listener socket */
 
@@ -115,48 +176,16 @@ int main(int argc, char ** argv)
         }
     }
 
-    
+    printf("\nThis user listens to port number '%d'\n", iListeningPortNum);
 
-    get_ip_address(acTemp);
-    if(!strcmp(acTemp, ""))
+    //get_ip_address(acTemp);
+    //if(NULL == acTemp)
         strcpy(acTemp, "127.0.0.1");
 
-    /* Establishing msg listener socket */
-
-    sMsgListeningAddr.sin_family = AF_INET;
-    sMsgListeningAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    sMsgListeningAddr.sin_port = htons(iMsgListeningPortNum);
-
-    iMsgListeningSocketFd = socket(AF_INET, SOCK_DGRAM, 0);
-
-    if (iMsgListeningSocketFd < 0)
-    {
-        fprintf(stderr, "Error while opening msg listening socket\n");
-        exit(1);
-    }
-
-    while(!iMsgListeningPortNum)
-    {
-        if (bind(iMsgListeningSocketFd, (struct sockaddr *) &sMsgListeningAddr, sizeof(sMsgListeningAddr)) < 0)
-        {
-            fprintf(stderr, "Error while binding listening socket\n");
-            exit(1);
-        }
-
-        if(getsockname(iMsgListeningSocketFd, (struct sockaddr *) &temp, (socklen_t *) &addrlen) == 0 &&
-           temp.sin_family == AF_INET && addrlen == sizeof(temp))
-        {
-            iMsgListeningPortNum = ntohs(temp.sin_port);
-        }
-    }
-
-    //std::cout << "Message listening port: " << iMsgListeningPortNum << "\n";
-
     /* Storing my info in sMyInfo struct */
-    sMyInfo.name = argv[1];
+    sMyInfo.name = username;
     sMyInfo.ipAddr = acTemp;
     sMyInfo.port = iListeningPortNum;
-    sMyInfo.msgPort = iMsgListeningPortNum;
     sMyInfo.addr = &sListeningAddr;
 
     /* Establishing sender socket */
@@ -169,21 +198,9 @@ int main(int argc, char ** argv)
         exit(1);
     }
 
-    iMsgSendingSocketFd = socket(AF_INET, SOCK_DGRAM, 0);
-
-    if (iMsgSendingSocketFd < 0)
-    {
-        fprintf(stderr, "Error while opening sender socket\n");
-        exit(1);
-    }
-
     /* If initiating a new chat */
     if(2 == argc)
     {
-        fprintf(stdout, "\n%s started a new chat, listening on %s:%d\n\n", argv[1], acTemp, iListeningPortNum);
-        fprintf(stdout, "Succeeded, current users:\n%s %s:%d (Leader)\n\nWaiting for others to join...\n",
-                argv[1], acTemp, iListeningPortNum);
-
         is_server = true;
 
         /* Set sServerAddr */
@@ -195,38 +212,28 @@ int main(int argc, char ** argv)
         }
         sServerAddr.sin_port = htons(iListeningPortNum);
 
-        /* Set sServerMsgAddr that contains the addr to which text msgs are to be
-         * sent and received */
-        sServerMsgAddr.sin_family = AF_INET;
-        if(inet_pton(AF_INET, acTemp, &sServerMsgAddr.sin_addr) <= 0)
-        {
-            fprintf(stderr, "Error while storing the IP address. Please retry\n");
-            exit(1);
-        }
-        sServerMsgAddr.sin_port = htons(iMsgListeningPortNum);
-
         /* Adding server info into sServerInfo struct */
         sServerInfo.name = argv[1];
         sServerInfo.ipAddr = acTemp;
         sServerInfo.port = iListeningPortNum;
-        sServerInfo.msgPort = iMsgListeningPortNum;
 
         /* Set username to what's being passed as an arg */
         username = argv[1];
 
         /* Start all the threads */
-        std::thread user_listener_thread(user_listener);
+        std::thread interface_thread(interface); sleep(2);
+        //std::thread user_listener_thread(user_listener);
         std::thread msg_listener_thread(msg_listener);
-        std::thread spl_msg_listener_thread(spl_msg_listener);
         std::thread broadcast_message_thread(broadcast_message);
         std::thread heartbeat_thread(heartbeat);
 
         /* Wait for threads to join */
-        user_listener_thread.join();
+        interface_thread.join();
+        //user_listener_thread.join();
         msg_listener_thread.join();
-        spl_msg_listener_thread.join();
         broadcast_message_thread.join();
         heartbeat_thread.join();
+
 
     }
 
@@ -257,15 +264,7 @@ int main(int argc, char ** argv)
 
         sServerInfo.ipAddr = token;
 
-        char * pcTempToken;
-        pcTempToken = strtok(NULL, " :");
-        if(pcTempToken == 0)
-        {
-            fprintf(stdout, "Incorrect arguments. Please retry\n");
-            exit(1);
-        }
-        token = pcTempToken;
-
+        token = strtok(NULL, " :");
         if(NULL == token.c_str())
         {
             fprintf(stderr, "The port specified is not valid. Please retry\n");
@@ -281,15 +280,12 @@ int main(int argc, char ** argv)
         sConnectingAddr.sin_port = htons( (int) strtol(token.c_str(), NULL, 10) );
 
         sServerInfo.port = atoi(token.c_str());
-        
-        fprintf(stdout, "\n%s joining a new chat on %s:%d, listening on %s:%d\n\n", argv[1],
-                sServerInfo.ipAddr.c_str(), sServerInfo.port, acTemp, iListeningPortNum);
 
         sprintf(&acBufferLocal[MSG_TYPE], "%d", (int) messageType::REQ_CONNECTION);
         strcpy(&acBufferLocal[NAME], username.c_str());
         sprintf(&acBufferLocal[DATA], "%d", iListeningPortNum);
-        int iTempStrLen = DATA + strlen(&acBufferLocal[DATA]) + 1;
-        sprintf(&acBufferLocal[iTempStrLen], "%d", iMsgListeningPortNum);
+        sendto(iSendingSocketFd, acBufferLocal, BUFF_SIZE, 0,
+            (struct sockaddr *) &sConnectingAddr, sizeof(sockaddr_in));
 
         /* Copying connecting addr info to server addr assuming it is
          * connecting to server. If it is not server, we get to know that when
@@ -297,28 +293,18 @@ int main(int argc, char ** argv)
         sServerAddr = sConnectingAddr;
 
         /* Start all the threads */
-        std::thread user_listener_thread(user_listener);
+        std::thread interface_thread(interface); sleep(2);
+        //std::thread user_listener_thread(user_listener);
         std::thread msg_listener_thread(msg_listener);
-        std::thread spl_msg_listener_thread(spl_msg_listener);
         std::thread broadcast_message_thread(broadcast_message);
         std::thread heartbeat_thread(heartbeat);
-        
-        sendto(iSendingSocketFd, acBufferLocal, BUFF_SIZE, 0,
-            (struct sockaddr *) &sConnectingAddr, sizeof(sockaddr_in));
 
-        sleep(5);
-        if(connection_flag == false)
-        {
-            fprintf(stdout, "Sorry, no chat is active on %s:%d, try again later.\nBye.",
-                    sServerInfo.ipAddr.c_str(), sServerInfo.port);
-            exit(1);
-        }
-        
-        user_listener_thread.join();
+        interface_thread.join();
+        //user_listener_thread.join();
         msg_listener_thread.join();
-        spl_msg_listener_thread.join();
         broadcast_message_thread.join();
         heartbeat_thread.join();
+
     }
     return 0;
 }
@@ -353,3 +339,4 @@ void get_ip_address(char * ip)
 
     return;
 }
+

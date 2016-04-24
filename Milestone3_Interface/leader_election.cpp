@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <ctime>
 
+#include "globals.h"
 
 static bool deleteAll(sockaddr_in * element) 
 { 
@@ -38,32 +39,15 @@ void initiate_leader_election()
     heartbeatMutex.lock();
     declare_leader = true;
     heartbeatMutex.unlock();
-
-    /*
     for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i)
-    {
-        std::cout << "Entry in lpsclients: " << ntohs((*i)->sin_port) << "\n";
+    {   std::cout << "Entry in lpsclients: " << ntohs((*i)->sin_port) << "\n";
         //sendto(iSockFd, acBuffer, sizeof(acBuffer), 0, (struct sockaddr *) *i, sizeof(*(*i)));
     }
-    */
-
     for(std::list<msg_struct *>::iterator i = lpsClientInfo.begin(); i != lpsClientInfo.end(); ++i)
     {
         /* Ignore if the entry belongs to the current process */
         if((*i)->name == username && (*i)->port == iListeningPortNum)
             continue;
-
-        /* Create sockaddr struct and add it to lpsClientsMsg */
-        psAddr = new sockaddr_in;
-        psAddr->sin_family = AF_INET;
-        if(inet_pton(AF_INET, ((*i)->ipAddr).c_str(), &(psAddr->sin_addr)) <= 0)
-        {
-            fprintf(stderr, "Error while storing the IP address. Please retry\n");
-            exit(1);
-        }
-        psAddr->sin_port = htons((*i)->msgPort);
-
-        lpsClientsMsg.push_back(psAddr);
 
         /* Create sockaddr struct and add it to lpsClients */
         psAddr = new sockaddr_in;
@@ -76,18 +60,17 @@ void initiate_leader_election()
         psAddr->sin_port = htons((*i)->port);
 
         lpsClients.push_back(psAddr);
-
-        /* Send req leader election if port < the port of list entry */
+        
         if((*i)->port >= iListeningPortNum)
         {
             if((*i)->port == iListeningPortNum)
             {
-                if(strcmp((*i)->ipAddr.c_str(), sMyInfo.ipAddr.c_str()) < 0)
+                if(strcmp((*i)->name.c_str(), username.c_str()) < 0)
                 {
                     continue;
                 }
             }
-            //std::cout << "Sending REQ_LEADER_ELECTION\n";
+            std::cout << "Sending REQ_LEADER_ELECTION\n";
 
             sendto(iSockFd, acBuffer, BUFF_SIZE * sizeof(char), 0,
                     (struct sockaddr *) psAddr, iAddrLen);
@@ -102,6 +85,7 @@ void initiate_leader_election()
     heartbeatMutex.unlock();
 
     newLeaderElectedMutex.lock();
+    //std::cout << "leader_already_declared value = " << leader_already_declared << "\n";    
     if(bDeclareLeader && !leader_already_declared)
     {
         /* Remove its entry from the client info list */
@@ -115,12 +99,10 @@ void initiate_leader_election()
                 break;
             }
         }
-        /*
         for (std::list<msg_struct *>::iterator iterate = lpsClientInfo.begin(); iterate != lpsClientInfo.end(); ++iterate)
         {
             std::cout<< "Client Info: "<< (*iterate)->port << "\n";
         }
-        */
         clientListMutex.unlock();
 
         /* Set sServerAddr */
@@ -131,19 +113,10 @@ void initiate_leader_election()
         }
         sServerAddr.sin_port = htons(iListeningPortNum);
 
-        /* Set sServerMsgAddr */
-        if(inet_pton(AF_INET, sMyInfo.ipAddr.c_str(), &sServerMsgAddr.sin_addr) <= 0)
-        {
-            fprintf(stderr, "Error while storing the IP address. Please retry\n");
-            exit(1);
-        }
-        sServerMsgAddr.sin_port = htons(iMsgListeningPortNum);
-
         /* Set sServerInfo */
         sServerInfo.name = username;
         sServerInfo.ipAddr = sMyInfo.ipAddr;
         sServerInfo.port = iListeningPortNum;
-        sServerInfo.msgPort = iMsgListeningPortNum;
 
         /* Copy the contents of sentBuffer to broadcast queue */
         sentbufferMutex.lock();
@@ -153,8 +126,7 @@ void initiate_leader_election()
         {
             psMsgStruct = it->second;
             psMsgStruct->seqNum = iTempSeqNum++;
-            psMsgStruct->msgType = messageType::MSG;
-            qpsMsgBroadcastq.push(psMsgStruct);
+            qpsBroadcastq.push(psMsgStruct);
         }
         sentBufferMap.clear();
         sentbufferMutex.unlock();
@@ -165,37 +137,38 @@ void initiate_leader_election()
         strcpy(&acBuffer[NAME], username.c_str());
         strcpy(&acBuffer[DATA], sServerInfo.ipAddr.c_str());
         sprintf(&acBuffer[SENDER_LISTENING_PORT], "%d", sServerInfo.port);
-        int iTempIndex = DATA + strlen(&acBuffer[DATA]) + 1;
-        sprintf(&acBuffer[iTempIndex], "%d", sServerInfo.msgPort);
+
+        
 
         clientListMutex.lock();
         is_server = true;
-        seqNumMutex.lock();
-        iSeqNum = iTempSeqNum;
-        seqNumMutex.unlock();
-        iMsgId = 0;
-        iExpSeqNum = 0;
+        w->updateServerLabel(is_server);
+        iSeqNum = iMsgId = iExpSeqNum = 0;
         for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i)
-        {   
-            //std::cout << "Sending NEW_LEADER_ELECTED to " << ntohs((*i)->sin_port) << "\n";
+        {   std::cout << "Sending new leader elected msg to" << ntohs((*i)->sin_port) << "\n";
             sendto(iSockFd, acBuffer, sizeof(acBuffer), 0, (struct sockaddr *) *i, sizeof(*(*i)));
         }
         clientListMutex.unlock();
     }
     else
     {
-        /* Clear lpsClientsMsg and lpsClients list in case it it not a server */
+        /* Clear the lpsClients list in case it it not a server */
+        /*for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i)
+        {
+            if(*i != NULL)
+            {
+                delete *i;
+            }
+            i = lpsClients.erase(i);
+        }*/
         lpsClients.remove_if(deleteAll);
-        lpsClientsMsg.remove_if(deleteAll);
 
-        /*
-        for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i)
+         for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i)
         {   
             std::cout << "Entry in lpsclients after deletion: " << ntohs((*i)->sin_port) << "\n";
-            //sendto(iSockFd, acBuffer, sizeof(acBuffer), 0, (struct sockaddr *) *i, sizeof(*(*i)));
+        //sendto(iSockFd, acBuffer, sizeof(acBuffer), 0, (struct sockaddr *) *i, sizeof(*(*i)));
         }
-        */
     }
     newLeaderElectedMutex.unlock();
-    close(iSockFd);
 }
+

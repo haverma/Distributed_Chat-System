@@ -14,6 +14,8 @@
 #include <unistd.h>
 #include <time.h>  
 
+#include "globals.h"
+
 void check_ack_sb(int time_diff_sec)
 {
     int sockfd = socket(PF_INET, SOCK_DGRAM, 0);
@@ -33,11 +35,9 @@ void check_ack_sb(int time_diff_sec)
             sprintf(&buf[DATA], "%s", message.c_str());
             sprintf(&buf[NAME], "%s", temp->name.c_str());
             sprintf(&buf[MSG_ID], "%d", temp->msgId);
-            sprintf(&buf[SENDER_LISTENING_PORT], "%d", iMsgListeningPortNum);
-
-            //std::cout << "Msg id resent: " << temp->msgId << "\n";
-
-            int n = sendto(sockfd, buf, sizeof(buf), 0, (struct sockaddr *)&sServerMsgAddr, sizeof(sServerMsgAddr));
+            sprintf(&buf[SENDER_LISTENING_PORT], "%d", iListeningPortNum);
+            
+            int n = sendto(sockfd, buf, sizeof(buf), 0, (struct sockaddr *)&sServerAddr, sizeof(sServerAddr));
             if (n < 0) 
                 perror("ERROR in sendto");
             //sentbufferMutex.lock();
@@ -46,5 +46,6 @@ void check_ack_sb(int time_diff_sec)
             //sentbufferMutex.unlock();
         }
     }
-    close(sockfd);
 }
+
+

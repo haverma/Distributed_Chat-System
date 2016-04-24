@@ -10,7 +10,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <time.h>
-#include "encoder.hpp"
+
+#include "globals.h"
 
 void user_listener()
 {
@@ -29,7 +30,6 @@ void user_listener()
 
     while(true)
     {
-        
         strcpy(acBuffer, "");
         iTemp = 0;
         /* Fetch the user input */
@@ -51,19 +51,14 @@ void user_listener()
             }
                 
         }
-        
         iTemp = strlen(&acBuffer[DATA]);
         acBuffer[DATA + iTemp - 1] = '\0';
         if(!strcmp(&acBuffer[DATA], ""))
             continue;
-        
 
-        char* encryption = new char[BUFF_SIZE-DATA];
-        ENCODER::encrypt(&acBuffer[DATA], BUFF_SIZE-DATA, "TEAM BLOOPERS ROCKS!", &encryption);
-        for (int i=DATA; i<BUFF_SIZE; i++)
-            acBuffer[i] = encryption[i-DATA];
-        delete [] encryption;
-        
+        // interface update
+        w->updateText(&acBuffer[DATA]);
+
         if(is_server)
         {
             /* Create msg by filling the received msg into a struct and push
@@ -93,10 +88,8 @@ void user_listener()
             strcpy(&acBuffer[NAME], username.c_str());
             sprintf(&acBuffer[MSG_ID], "%d", iMsgId);
             sprintf(&acBuffer[SENDER_LISTENING_PORT], "%d", iListeningPortNum);
-            sendto(iSocketFd, acBuffer, BUFF_SIZE, 0,
-                    (struct sockaddr *) &sServerAddr, sizeof(sockaddr_in));
 
-            /* Add the message to sent buffer */
+             /* Add the message to sent buffer */
             psMsg = new msg_struct;
             psMsg->msgType = messageType::CHAT;
             psMsg->name = username;
@@ -104,21 +97,16 @@ void user_listener()
             psMsg->msgId = iMsgId;
             psMsg->timestamp = time(NULL);
             psMsg->attempts = 1;
+
             sentbufferMutex.lock();
-
-            /* Logging */
-            /*
-            std::cout << "During sending: Current msg ID sending: " << iMsgId << "\n\n";
-            for(auto it = sentBufferMap.cbegin(); it != sentBufferMap.cend(); ++it)
-            {
-                std::cout << it->first << " " << it->second << "\n";
-            }
-            */
-
             sentBufferMap[iMsgId] = psMsg;
-            sentbufferMutex.unlock();
             iMsgId++;
-        }
+            sentbufferMutex.unlock();
+            
 
+            sendto(iSocketFd, acBuffer, BUFF_SIZE, 0,
+                    (struct sockaddr *) &sServerAddr, sizeof(sockaddr_in));
+            
+        }
     }
 }

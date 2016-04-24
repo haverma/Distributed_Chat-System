@@ -11,7 +11,7 @@
 #include <arpa/inet.h>
 #include <sstream>
 #include <cstring>
-#include "encoder.hpp"
+#include "globals.h"
 
 int process_rec_msg(char * acBuffer);
 void get_msg_from_bbm(int seqNum, char * name, char * data);
@@ -19,7 +19,7 @@ void check_hbm_and_display();
 void display(msg_struct * msg);
 void update_client_list(msg_struct * msg);
 void display_client_list();
-void check_ack_sb();
+void check_ack_sb(int time_diff_sec);
 void flush_dead_clients(std::list<int> deadclients);
 
 bool is_client_already_present(std::string name)
@@ -76,11 +76,12 @@ int process_rec_msg(char * acBuffer)
     int iTempIndex = 0;
     int iLenToBeSent = 0;
     char acTempStr[100] = "\0";
-
     switch(msg.msgType)
     {
         case REQ_CONNECTION:
             {
+        printf ("received message\n");
+        printf ("++++++++++++++++++++++++ is server = %d\n", is_server);
                 if(is_server)
                 {
                     if(!is_client_already_present(msg.name))
@@ -263,7 +264,6 @@ int process_rec_msg(char * acBuffer)
                 {
                     /* Display msg and then display all other msgs from the hbm
                      * that should be displayed */
-                    /* TODO Implement the below function */
                     display(&msg);
                     iExpSeqNum++;
                     iLenToBeSent = 0;
@@ -288,15 +288,18 @@ int process_rec_msg(char * acBuffer)
 
                     if(msg.seqNum >= iExpSeqNum + 2)
                     {
-                        for(int iterator = iExpSeqNum; iterator < msg.seqNum; iterator++)
+                        for(int iterator = iExpSeqNum; iterator <= msg.seqNum; iterator++)
                         {
-                            memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
-                            sprintf(&acBuffer[MSG_TYPE], "%d", (int)messageType::RETRIEVE_MSG);
-                            sprintf(&acBuffer[SENDER_LISTENING_PORT], "%d", iListeningPortNum);
-                            sprintf(&acBuffer[SEQ_NUM],"%d", iterator);
-                            sRecAddr = sServerAddr;
-                            iLenToBeSent = BUFF_SIZE;
-                            sendto(iSendingSocketFd, acBuffer, iLenToBeSent, 0,(struct sockaddr *) &sRecAddr, iRecAddrLen);
+                            if (holdbackMap.find(iterator) == holdbackMap.end())
+                            {
+                                memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
+                                sprintf(&acBuffer[MSG_TYPE], "%d", (int)messageType::RETRIEVE_MSG);
+                                sprintf(&acBuffer[SENDER_LISTENING_PORT], "%d", iListeningPortNum);
+                                sprintf(&acBuffer[SEQ_NUM],"%d", iterator);
+                                sRecAddr = sServerAddr;
+                                iLenToBeSent = BUFF_SIZE;
+                                sendto(iSendingSocketFd, acBuffer, iLenToBeSent, 0,(struct sockaddr *) &sRecAddr, iRecAddrLen);
+                            }
                         }
                         iLenToBeSent = 0;
 
@@ -331,16 +334,6 @@ int process_rec_msg(char * acBuffer)
                 {
                     /* Remove entry from sent buffer */
                     sentbufferMutex.lock();
-
-                    /* Logging */
-                    /*
-                    std::cout << "Current msg ID recd: " << msg.msgId << "\n\n";
-                    for(auto it = sentBufferMap.cbegin(); it != sentBufferMap.cend(); ++it)
-                    {
-                        std::cout << it->first << " " << it->second << "\n";
-                    }
-                    */
-
                     if (sentBufferMap.find(msg.msgId) != sentBufferMap.end())
                     {
                         /* TODO: Delete the entry before erasing */
@@ -349,10 +342,11 @@ int process_rec_msg(char * acBuffer)
                     else
                     {
                         fprintf(stderr, "Unexpected ack received\n");
+                        sentbufferMutex.unlock();
                         break;
                     }
                     if(sentBufferMap.size() > 0){
-                        check_ack_sb();
+                        check_ack_sb(3);
                     }
                     sentbufferMutex.unlock();
                 }
@@ -383,7 +377,7 @@ int process_rec_msg(char * acBuffer)
 
                     /*if the sequence number is not found in the buffer map 
                     *tell the client to increase the sequence number*/
-                    if(&acBuffer[NAME] == NULL && &acBuffer[DATA] == NULL)
+                    if(strcmp(&acBuffer[NAME], "") == 0 && strcmp(&acBuffer[DATA], "") == 0)
                     {
                         sprintf(&acBuffer[MSG_TYPE], "%d", (int) messageType::MSG_NOT_FOUND);
                     }
@@ -395,6 +389,15 @@ int process_rec_msg(char * acBuffer)
                     iLenToBeSent = BUFF_SIZE;
                 }
                 break;
+            }
+
+        case MSG_NOT_FOUND:
+            {
+                iExpSeqNum++;
+                iLenToBeSent = 0;
+                check_hbm_and_display();
+                break;
+
             }
 
         case CLIENT_LIST:
@@ -504,19 +507,13 @@ int process_rec_msg(char * acBuffer)
 
         case REQ_LEADER_ELECTION:
             {
-                //if(!is_server)
-                //{
-                    if(msg.senderPort < iListeningPortNum)
-                    {
-                        sRecAddr.sin_port = htons(atoi(&acBuffer[SENDER_LISTENING_PORT]));
-                        memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
-                        sprintf(&acBuffer[MSG_TYPE], "%d", (int) messageType::STOP_LEADER_ELECTION);
-                        iLenToBeSent = BUFF_SIZE;
-                        break;
-                    }
-                //}
-                iLenToBeSent = 0;
-                break;
+               
+                    sRecAddr.sin_port = htons(atoi(&acBuffer[SENDER_LISTENING_PORT]));
+                    memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
+                    sprintf(&acBuffer[MSG_TYPE], "%d", (int) messageType::STOP_LEADER_ELECTION);
+                    iLenToBeSent = BUFF_SIZE;
+                    break;
+               
             }
 
         case STOP_LEADER_ELECTION:
@@ -571,7 +568,9 @@ int process_rec_msg(char * acBuffer)
                 /* Reset the exp seq num */
                 iExpSeqNum = 0;
                 newLeaderElectedMutex.unlock();
-
+                sentbufferMutex.lock();
+                check_ack_sb(-1);
+                sentbufferMutex.unlock();
                 iLenToBeSent = 0;
                 break;
             }
@@ -606,17 +605,21 @@ void display(msg_struct * message)
     /*If the message type is a simple message*/
     if(message->msgType == messageType::MSG)
     {
-        printf("SIZE = %d\n", BUFF_SIZE-DATA);
-        char* encryption = new char[BUFF_SIZE-DATA];
-        ENCODER::decrypt(message->data.c_str(), BUFF_SIZE-DATA, "TEAM BLOOPERS ROCKS!", &encryption);
-        std::cout << message->name + ": " + encryption << "\tdecrypted from: " << message->data.c_str() << std::endl;
-        delete [] encryption;
-        
-        //std::cout << message->name + ": " + message->data << "\n";
+        std::cout << message->name + ": " + message->data << "\n";
+        std::string tmp_str = "";
+        tmp_str+= message->name;
+        tmp_str+= ": ";
+        tmp_str+= message->data;
+        tmp_str+= "\n";
+        printf("message = %s\n", tmp_str.c_str());
+        w->updateText(tmp_str.c_str());
     }
     else if(message->msgType == messageType::NEW_CLIENT_INFO) //if the message is a new client notification
     {
         std::cout << message->data << "\n";
+        w->updateText(message->data.c_str());
+        printf("message = %s\n", message->data.c_str());
+
     }
 }
 
@@ -638,8 +641,8 @@ void check_hbm_and_display()
             if(hb_map_iterator->second != NULL)
             {
                 delete hb_map_iterator->second;
+                holdbackMap.erase(hb_map_iterator);
             }            
-            /* TODO: erase the entry from map */
             iExpSeqNum++;
         }
         else        //if the next sequence number is not in the holdback map
@@ -706,12 +709,20 @@ void display_client_list()
     /* Printing server's information */
     std::cout<< sServerInfo.name + " " + sServerInfo.ipAddr + ":" + std::to_string(sServerInfo.port) + " (Leader)" << "\n";
 
+    // update interfce
+    w->clearUsers();
+    // add server name
+    w->addUser(sServerInfo.name.c_str());
     /* Displaying clients information in a list */
     clientListMutex.lock();
     for (std::list<msg_struct *>::iterator i = lpsClientInfo.begin(); i != lpsClientInfo.end(); ++i)
     {
         msg_struct * psClientInfo = *i; 
         std::cout<< psClientInfo->name + " " + psClientInfo->ipAddr + ":" + std::to_string(psClientInfo->port)  << "\n";
+
+        // add username
+        w->addUser(psClientInfo->name.c_str());
     }
     clientListMutex.unlock();
 }
+
