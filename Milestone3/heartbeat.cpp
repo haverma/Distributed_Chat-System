@@ -95,6 +95,7 @@ void heartbeat()
                 }
             }
         }
+	usleep(5);
     }
     close(sockfd);
 }

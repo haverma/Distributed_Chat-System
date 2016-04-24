@@ -217,7 +217,7 @@ void user_listener()
             sendto(iSocketFd, acBuffer, BUFF_SIZE, 0,
                     (struct sockaddr *) &sServerMsgAddr, sizeof(sockaddr_in));
         }
-        usleep(5);
+        usleep(10);
     }
     close(iSocketFd);
 }

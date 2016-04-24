@@ -59,6 +59,7 @@ void msg_listener()
             sendto(iMsgSendingSocketFd, acBuffer, iLenToBeSent, 0,
                     (struct sockaddr *) &sRecMsgAddr, iRecMsgAddrLen);
         }
+	usleep(5);
     }
 }
 

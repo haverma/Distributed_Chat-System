@@ -77,6 +77,7 @@ void broadcast_message()
                 send_to_all_members(sockfd, buf, sizeof(buf), 1);
             }
         }
+	usleep(5);
     }
     close(sockfd);
 }
