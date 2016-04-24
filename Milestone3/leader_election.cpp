@@ -87,7 +87,7 @@ void initiate_leader_election()
                     continue;
                 }
             }
-            std::cout << "Sending REQ_LEADER_ELECTION\n";
+            //std::cout << "Sending REQ_LEADER_ELECTION\n";
 
             sendto(iSockFd, acBuffer, BUFF_SIZE * sizeof(char), 0,
                     (struct sockaddr *) psAddr, iAddrLen);
@@ -177,7 +177,7 @@ void initiate_leader_election()
         iExpSeqNum = 0;
         for (std::list<sockaddr_in *>::iterator i = lpsClients.begin(); i != lpsClients.end(); ++i)
         {   
-            std::cout << "Sending NEW_LEADER_ELECTED to " << ntohs((*i)->sin_port) << "\n";
+            //std::cout << "Sending NEW_LEADER_ELECTED to " << ntohs((*i)->sin_port) << "\n";
             sendto(iSockFd, acBuffer, sizeof(acBuffer), 0, (struct sockaddr *) *i, sizeof(*(*i)));
         }
         clientListMutex.unlock();

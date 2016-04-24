@@ -119,9 +119,9 @@ int process_rec_spl_msg(char * acBuffer)
                         /* Insert NEW_CLIENT_INFO msg to broadcast queue */
                         psMsg = new msg_struct;
                         psMsg->msgType = messageType::NEW_CLIENT_INFO;
-                        sprintf(acTempStr, "%s joined the chat on %s:%d, listening on %s:%d\n",
-                                (psClientInfo->name).c_str(), sServerInfo.ipAddr.c_str(),
-                                sServerInfo.port, psClientInfo->ipAddr.c_str(), psClientInfo->port);
+                        sprintf(acTempStr, "NOTICE %s joined on %s:%d\n",
+                            (psClientInfo->name).c_str(), psClientInfo->ipAddr.c_str(),
+                            psClientInfo->port);
                         psMsg->data = acTempStr;
                         broadcastMutex.lock();
                         qpsBroadcastq.push(psMsg);
@@ -181,6 +181,8 @@ int process_rec_spl_msg(char * acBuffer)
                     sServerMsgAddr.sin_family = AF_INET;
                     sServerMsgAddr.sin_addr.s_addr = sServerAddr.sin_addr.s_addr;
                     sServerMsgAddr.sin_port = htons(atoi(msg.data.c_str()));
+
+                    connection_flag = true;
 
                     iLenToBeSent = 0;
                 }
@@ -304,7 +306,7 @@ int process_rec_spl_msg(char * acBuffer)
 
         case REQ_LEADER_ELECTION:
             {
-                std::cout << "Recd REQ_LEADER_ELECTION from: " << atoi(&acBuffer[SENDER_LISTENING_PORT]) << "\n";
+                //std::cout << "Recd REQ_LEADER_ELECTION from: " << atoi(&acBuffer[SENDER_LISTENING_PORT]) << "\n";
                 sRecAddr.sin_port = htons(atoi(&acBuffer[SENDER_LISTENING_PORT]));
                 memset(acBuffer, 0x0, BUFF_SIZE * sizeof(char));
                 sprintf(&acBuffer[MSG_TYPE], "%d", (int) messageType::STOP_LEADER_ELECTION);
@@ -314,7 +316,7 @@ int process_rec_spl_msg(char * acBuffer)
 
         case STOP_LEADER_ELECTION:
             {
-                std::cout << "Received STOP_LEADER_ELECTION\n";
+                //std::cout << "Received STOP_LEADER_ELECTION\n";
                 if(!is_server)
                 {
                     heartbeatMutex.lock();
@@ -332,7 +334,7 @@ int process_rec_spl_msg(char * acBuffer)
                 heartbeatMutex.lock();
                 iResponseCount = 0;
                 heartbeatMutex.unlock();
-                std::cout << "Recd NEW_LEADER_ELECTED msg, port:" << msg.senderPort << "\n";
+                //std::cout << "Recd NEW_LEADER_ELECTED msg, port:" << msg.senderPort << "\n";
 
                 /* Store server's information in the global sServerAddr struct */
                 sServerAddr.sin_family = AF_INET;
@@ -448,6 +450,7 @@ void update_client_list(msg_struct * psMessageStruct)
 
 void display_client_list()
 {
+    std::cout << "Current users:\n";
     /* Printing server's information */
     std::cout<< sServerInfo.name + " " + sServerInfo.ipAddr + ":" + std::to_string(sServerInfo.port) + " (Leader)" << "\n";
 

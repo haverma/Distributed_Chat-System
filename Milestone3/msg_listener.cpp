@@ -116,7 +116,7 @@ int process_rec_msg(char * acBuffer)
 
         case MSG:
             {
-                std::cout << "recd MSG: DATA: " << msg.data << " Name: " << msg.name << " Seq num: " << msg.seqNum << "\n";
+                //std::cout << "recd MSG: DATA: " << msg.data << " Name: " << msg.name << " Seq num: " << msg.seqNum << "\n";
                 expSeqNumMutex.lock();
                 if(msg.seqNum == iExpSeqNum)
                 {

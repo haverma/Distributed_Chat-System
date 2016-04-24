@@ -20,6 +20,7 @@ int iMsgListeningSocketFd, iMsgSendingSocketFd;
 int iListeningPortNum = 0, iMsgListeningPortNum = 0;
 std::string username;
 bool is_server, is_server_alive, declare_leader, leader_already_declared;
+bool connection_flag = false;
 std::queue<msg_struct *> qpsBroadcastq;
 std::queue<msg_struct *> qpsMsgBroadcastq;
 std::list<msg_struct *> lpsClientInfo;
@@ -103,10 +104,10 @@ int main(int argc, char ** argv)
         }
     }
 
-    printf("\nThis user listens to port number '%d'\n", iListeningPortNum);
+    
 
-    //get_ip_address(acTemp);
-    //if(NULL == acTemp)
+    get_ip_address(acTemp);
+    if(NULL == acTemp)
         strcpy(acTemp, "127.0.0.1");
 
 
@@ -139,10 +140,10 @@ int main(int argc, char ** argv)
         }
     }
 
-    std::cout << "Message listening port: " << iMsgListeningPortNum << "\n";
+    //std::cout << "Message listening port: " << iMsgListeningPortNum << "\n";
 
     /* Storing my info in sMyInfo struct */
-    sMyInfo.name = username;
+    sMyInfo.name = argv[1];
     sMyInfo.ipAddr = acTemp;
     sMyInfo.port = iListeningPortNum;
     sMyInfo.msgPort = iMsgListeningPortNum;
@@ -169,6 +170,10 @@ int main(int argc, char ** argv)
     /* If initiating a new chat */
     if(2 == argc)
     {
+        fprintf(stdout, "\n%s started a new chat, listening on %s:%d", argv[1], acTemp, iListeningPortNum);
+        fprintf(stdout, "Succeeded, current users:\n%s %s.%d\nWaiting for others to join...\n",
+                argv[1], acTemp, iListeningPortNum);
+
         is_server = true;
 
         /* Set sServerAddr */
@@ -258,6 +263,9 @@ int main(int argc, char ** argv)
         sConnectingAddr.sin_port = htons( (int) strtol(token.c_str(), NULL, 10) );
 
         sServerInfo.port = atoi(token.c_str());
+        
+        fprintf(stdout, "\n%s joining a new chat on %s:%d, listening on %s:%d\n", argv[1],
+                sServerInfo.ipAddr.c_str(), sServerInfo.port, acTemp, iListeningPortNum);
 
         sprintf(&acBufferLocal[MSG_TYPE], "%d", (int) messageType::REQ_CONNECTION);
         strcpy(&acBufferLocal[NAME], username.c_str());
@@ -278,7 +286,15 @@ int main(int argc, char ** argv)
         std::thread heartbeat_thread(heartbeat);
         
         sendto(iSendingSocketFd, acBufferLocal, BUFF_SIZE, 0,
-            (struct sockaddr *) &sConnectingAddr, sizeof(sockaddr_in)); 
+            (struct sockaddr *) &sConnectingAddr, sizeof(sockaddr_in));
+
+        sleep(5);
+        if(connection_flag == false)
+        {
+            fprintf(stdout, "Sorry, no chat is active on %s:%d, try again later.\nBye."
+                    sServerInfo.ipAddr.c_str(), sServerInfo.port);
+            exit(1);
+        }
         
         user_listener_thread.join();
         msg_listener_thread.join();
