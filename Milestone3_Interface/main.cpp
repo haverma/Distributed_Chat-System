@@ -221,7 +221,7 @@ int main(int argc, char ** argv)
         username = argv[1];
 
         /* Start all the threads */
-        std::thread interface_thread(interface); sleep(2);
+        std::thread interface_thread(interface); while(!w){usleep(100);}
         //std::thread user_listener_thread(user_listener);
         std::thread msg_listener_thread(msg_listener);
         std::thread broadcast_message_thread(broadcast_message);
@@ -293,7 +293,7 @@ int main(int argc, char ** argv)
         sServerAddr = sConnectingAddr;
 
         /* Start all the threads */
-        std::thread interface_thread(interface); sleep(2);
+        std::thread interface_thread(interface);  while(!w){usleep(100);}
         //std::thread user_listener_thread(user_listener);
         std::thread msg_listener_thread(msg_listener);
         std::thread broadcast_message_thread(broadcast_message);
