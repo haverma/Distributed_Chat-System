@@ -60,7 +60,6 @@ void spl_msg_listener()
             sendto(iSendingSocketFd, acBuffer, iLenToBeSent, 0,
                     (struct sockaddr *) &sRecAddr, iRecAddrLen);
         }
-	usleep(5);
     }
 }
 
