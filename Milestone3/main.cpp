@@ -309,7 +309,7 @@ int main(int argc, char ** argv)
         sleep(5);
         if(connection_flag == false)
         {
-            fprintf(stdout, "Sorry, no chat is active on %s:%d, try again later.\nBye.",
+            fprintf(stdout, "Sorry, no chat is active on %s:%d, try again later.\nBye.\n\n",
                     sServerInfo.ipAddr.c_str(), sServerInfo.port);
             exit(1);
         }

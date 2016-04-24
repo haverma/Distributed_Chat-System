@@ -111,14 +111,13 @@ int process_rec_msg(char * acBuffer)
                     sprintf(&acBuffer[MSG_TYPE], "%d", (int)messageType::ACK);
                     sprintf(&acBuffer[MSG_ID], "%d", msg.msgId);
                     iLenToBeSent = BUFF_SIZE;
-                    usleep(3000);
                 }
                 break;
             }
 
         case MSG:
             {
-                //std::cout << "recd MSG: DATA: " << msg.data << " Name: " << msg.name << " Seq num: " << msg.seqNum << "\n";
+                //std::cout << "recd MSG " << msg.seqNum << " " << iExpSeqNum << "\n";
                 expSeqNumMutex.lock();
                 if(msg.seqNum == iExpSeqNum)
                 {

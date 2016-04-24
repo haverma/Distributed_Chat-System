@@ -145,7 +145,12 @@ int process_rec_spl_msg(char * acBuffer)
                         seqNumMutex.lock();
                         sprintf(&acBuffer[SEQ_NUM], "%d", iSeqNum);
                         seqNumMutex.unlock();
-                        sprintf(&acBuffer[DATA], "%d", iMsgListeningPortNum);
+                        sprintf(&acBuffer[DATA], "%d", iListeningPortNum);
+                        iTempIndex = strlen(&acBuffer[DATA]) + DATA + 1;
+                        sprintf(&acBuffer[iTempIndex], "%d", iMsgListeningPortNum);
+
+                        //std::cout << "Sending connection est: " << username <<
+                        //    iListeningPortNum << " " << iMsgListeningPortNum << "\n";
                         iLenToBeSent = BUFF_SIZE;
                     }
                 }
@@ -168,20 +173,33 @@ int process_rec_spl_msg(char * acBuffer)
 
         case CONNECTION_ESTABLISHED:
             {
+                //std::cout << "Recd connection est\n";
+                //std::cout << "server: " << msg.name << " " << atoi(msg.data.c_str());
                 if(!is_server)
                 {
+                    //std::cout << "setting flag to true\n";
+                    connection_flag = true;
+
+                    /* Set sServerInfo */
                     sServerInfo.name = msg.name;
-                    sServerInfo.msgPort = atoi(msg.data.c_str());
+                    inet_ntop(AF_INET, &(sRecAddr.sin_addr), acTempStr, INET_ADDRSTRLEN);
+                    sServerInfo.ipAddr = acTempStr;
+                    sServerInfo.port = atoi(msg.data.c_str());
+                    iTempIndex = strlen(&acBuffer[DATA]) + DATA + 1;
+                    sServerInfo.msgPort = atoi(&acBuffer[iTempIndex]);
+
                     expSeqNumMutex.lock();
                     iExpSeqNum = msg.seqNum;
                     expSeqNumMutex.unlock();
 
                     /* Set sServerMsgAddr */
                     sServerMsgAddr.sin_family = AF_INET;
-                    sServerMsgAddr.sin_addr.s_addr = sServerAddr.sin_addr.s_addr;
-                    sServerMsgAddr.sin_port = htons(atoi(msg.data.c_str()));
+                    sServerMsgAddr.sin_addr.s_addr = sRecAddr.sin_addr.s_addr;
+                    sServerMsgAddr.sin_port = htons(sServerInfo.msgPort);
 
-                    connection_flag = true;
+                    /* Set sServerAddr */
+                    sServerAddr.sin_addr.s_addr = sRecAddr.sin_addr.s_addr;
+                    sServerAddr.sin_port = htons(sServerInfo.port);
 
                     iLenToBeSent = 0;
                 }

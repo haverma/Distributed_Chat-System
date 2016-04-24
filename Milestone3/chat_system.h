@@ -65,7 +65,7 @@ typedef enum MessageType
 
 /* Defines the threshold number of msgs that can be stored in the broadcast
  * buffer map */
-#define BBMAP_THRESHOLD 200
+#define BBMAP_THRESHOLD 20000
 
 /* The following structure could be used to store all the information parsed
  * from the payload by the receiver */
