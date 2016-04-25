@@ -69,7 +69,6 @@ void clean_up_app()
     {
         if(mapIterate->second != NULL)
         {
-            std::cout << "Deleting holdback map entry\n";
             delete mapIterate->second;
         }
         mapIterate = holdbackMap.erase(mapIterate);
@@ -79,7 +78,6 @@ void clean_up_app()
     {
         if(mapIterate->second != NULL)
         {
-            std::cout << "Deleting holdback map entry\n";
             delete mapIterate->second;
         }
         mapIterate = broadcastBufferMap.erase(mapIterate);
@@ -89,7 +87,6 @@ void clean_up_app()
     {
         if(mapIterate->second != NULL)
         {
-            std::cout << "Deleting holdback map entry\n";
             delete mapIterate->second;
         }
         mapIterate = sentBufferMap.erase(mapIterate);
@@ -97,21 +94,18 @@ void clean_up_app()
     for (std::list<sockaddr_in *>::iterator sockaddrListIterate = lpsClients.begin();
             sockaddrListIterate != lpsClients.end(); ++sockaddrListIterate)
     {
-        std::cout << "Deleting list entry\n";
         delete * sockaddrListIterate;
         sockaddrListIterate = lpsClients.erase(sockaddrListIterate);
     }
     for (std::list<sockaddr_in *>::iterator sockaddrListIterate = lpsClientsMsg.begin();
             sockaddrListIterate != lpsClientsMsg.end(); ++sockaddrListIterate)
     {
-        std::cout << "Deleting list entry\n";
         delete * sockaddrListIterate;
         sockaddrListIterate = lpsClientsMsg.erase(sockaddrListIterate);
     }
     for (std::list<msg_struct *>::iterator msgListIterate = lpsClientInfo.begin();
             msgListIterate != lpsClientInfo.end(); ++msgListIterate)
     {
-        std::cout << "Deleting list entry\n";
         delete * msgListIterate;
         msgListIterate = lpsClientInfo.erase(msgListIterate);
     }
@@ -167,6 +161,10 @@ void user_listener()
             shut_down = false;
             sleep(1);
             clean_up_app();
+            close(iListeningSocketFd);
+            close(iSendingSocketFd);
+            close(iMsgListeningSocketFd);
+            close(iMsgSendingSocketFd);
             exit(0);
         }
 

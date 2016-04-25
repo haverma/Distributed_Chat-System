@@ -54,6 +54,7 @@ void check_ack_sb(int time_diff_sec);
 void broadcast_message();
 void heartbeat();
 void spl_msg_listener();
+void holdback_patrol();
 
 int main(int argc, char ** argv)
 {
@@ -220,6 +221,7 @@ int main(int argc, char ** argv)
         std::thread spl_msg_listener_thread(spl_msg_listener);
         std::thread broadcast_message_thread(broadcast_message);
         std::thread heartbeat_thread(heartbeat);
+        std::thread holdback_patrol_thread(holdback_patrol);
 
         /* Wait for threads to join */
         user_listener_thread.join();
@@ -227,6 +229,7 @@ int main(int argc, char ** argv)
         spl_msg_listener_thread.join();
         broadcast_message_thread.join();
         heartbeat_thread.join();
+        holdback_patrol_thread.join();
 
     }
 
@@ -301,7 +304,7 @@ int main(int argc, char ** argv)
         std::thread msg_listener_thread(msg_listener);
         std::thread spl_msg_listener_thread(spl_msg_listener);
         std::thread broadcast_message_thread(broadcast_message);
-        std::thread heartbeat_thread(heartbeat);
+        std::thread holdback_patrol_thread(holdback_patrol);
         
         sendto(iSendingSocketFd, acBufferLocal, BUFF_SIZE, 0,
             (struct sockaddr *) &sConnectingAddr, sizeof(sockaddr_in));
@@ -309,16 +312,19 @@ int main(int argc, char ** argv)
         sleep(5);
         if(connection_flag == false)
         {
+            shut_down = false;
             fprintf(stdout, "Sorry, no chat is active on %s:%d, try again later.\nBye.\n\n",
                     sServerInfo.ipAddr.c_str(), sServerInfo.port);
-            exit(1);
+            exit(0);
         }
+        std::thread heartbeat_thread(heartbeat);
         
         user_listener_thread.join();
         msg_listener_thread.join();
         spl_msg_listener_thread.join();
         broadcast_message_thread.join();
         heartbeat_thread.join();
+        holdback_patrol_thread.join();
     }
     return 0;
 }

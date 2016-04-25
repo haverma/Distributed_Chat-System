@@ -228,9 +228,9 @@ int process_rec_msg(char * acBuffer)
             {
                 expSeqNumMutex.lock();
                 iExpSeqNum++;
+                check_hbm_and_display();
                 expSeqNumMutex.unlock();
                 iLenToBeSent = 0;
-                check_hbm_and_display();
                 break;
 
             }

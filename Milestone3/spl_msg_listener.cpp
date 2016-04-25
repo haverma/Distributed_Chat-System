@@ -345,6 +345,7 @@ int process_rec_spl_msg(char * acBuffer)
 
         case NEW_LEADER_ELECTED:
             {
+                fprintf(stdout, "NOTICE: %s left the chat or crashed\n", sServerInfo.name.c_str());
                 newLeaderElectedMutex.lock();
                 leader_already_declared = true;
                 heartbeatMutex.lock();
@@ -376,6 +377,8 @@ int process_rec_spl_msg(char * acBuffer)
                 sServerInfo.ipAddr = msg.data;
                 sServerInfo.port = msg.senderPort;
                 sServerInfo.msgPort = atoi(&acBuffer[iTempIndex]);
+
+                fprintf(stdout, "NOTICE %s is the new leader\n", sServerInfo.name.c_str());
 
                 /* Delete the new server's info from clients' list */
                 clientListMutex.lock();

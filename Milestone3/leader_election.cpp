@@ -180,6 +180,7 @@ void initiate_leader_election()
             //std::cout << "Sending NEW_LEADER_ELECTED to " << ntohs((*i)->sin_port) << "\n";
             sendto(iSockFd, acBuffer, sizeof(acBuffer), 0, (struct sockaddr *) *i, sizeof(*(*i)));
         }
+        fprintf(stdout, "I am the new leader!\n");
         clientListMutex.unlock();
     }
     else
