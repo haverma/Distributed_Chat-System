@@ -1,7 +1,0 @@
-Things to do
-1.)Exit client when server not running
-2.)Put break in msg_listener.cpp
-3.)Retreive MSG::Not being sent
-4.)ACK not being sent
-5.)Seq Number not being initialized to zero when a new client joins the chat
-6.)Sent retrieve message for all messages having sequence number less than expected.
